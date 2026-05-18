@@ -1,0 +1,52 @@
+---
+title: "Hello World"
+date: "2026-05-18"
+excerpt: "这是我的第一篇博客文章，介绍这个博客的搭建过程。"
+tags: ["博客", "Next.js", "Go"]
+---
+
+## 你好，世界！
+
+欢迎来到我的博客。这是我使用 **Next.js 15** 和 **Go** 搭建的个人博客系统。
+
+## 技术栈
+
+这个博客使用了以下技术：
+
+- **前端**: Next.js 15, React, TypeScript, Tailwind CSS
+- **后端**: Go, Gin, PostgreSQL
+- **部署**: Docker, GitHub Actions
+
+## 代码示例
+
+```typescript
+// Next.js App Router 示例
+export default function HomePage() {
+  return (
+    <main>
+      <h1>Welcome to my blog</h1>
+    </main>
+  );
+}
+```
+
+```go
+// Go Gin 路由示例
+func main() {
+    r := gin.Default()
+    r.GET("/api/health", func(c *gin.Context) {
+        c.JSON(200, gin.H{"status": "ok"})
+    })
+    r.Run(":8080")
+}
+```
+
+## 未来计划
+
+我计划在这个博客上分享：
+
+1. Web 开发技术文章
+2. 项目开发经验
+3. 技术思考和见解
+
+感谢你的阅读！

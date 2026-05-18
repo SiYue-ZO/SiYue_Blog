@@ -1,0 +1,35 @@
+app:
+  name: siyue-blog
+  version: 0.1.0
+  env: development
+
+http:
+  addr: ":8080"
+  read_timeout: 10s
+  write_timeout: 10s
+
+postgres:
+  host: localhost
+  port: 5432
+  user: siyue
+  password: siyue_dev
+  dbname: siyue_blog
+  sslmode: disable
+  max_open_conns: 25
+  max_idle_conns: 10
+  max_lifetime: 300s
+
+jwt:
+  access_secret: change-me-in-production
+  refresh_secret: change-me-in-production
+  access_ttl: 15m
+  refresh_ttl: 168h
+
+cors:
+  allow_origins:
+    - http://localhost:3000
+    - http://localhost:3001
+
+log:
+  level: debug
+  format: console

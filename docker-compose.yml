@@ -1,0 +1,57 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: siyue_blog
+      POSTGRES_USER: siyue
+      POSTGRES_PASSWORD: siyue_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U siyue -d siyue_blog"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - GIN_MODE=debug
+      - SIYUE_POSTGRES_HOST=postgres
+      - SIYUE_POSTGRES_PORT=5432
+      - SIYUE_POSTGRES_USER=siyue
+      - SIYUE_POSTGRES_PASSWORD=siyue_dev
+      - SIYUE_POSTGRES_DBNAME=siyue_blog
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1
+
+volumes:
+  pgdata:

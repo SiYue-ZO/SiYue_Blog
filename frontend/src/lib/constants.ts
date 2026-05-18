@@ -1,0 +1,31 @@
+export const siteConfig = {
+  name: "SiYue Blog",
+  description: "A modern personal blog and portfolio",
+  url: process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
+  ogImage: "/images/og-default.png",
+  author: {
+    name: "SiYue",
+    bio: "Full-stack developer passionate about building modern web applications",
+    avatar: "/images/rana.png",
+    email: "contact@siyue.dev",
+    github: "https://github.com/siyue",
+    twitter: "https://twitter.com/siyue",
+  },
+  nav: [
+    { title: "首页", href: "/" },
+    { title: "博客", href: "/blog" },
+    { title: "项目", href: "/projects" },
+    { title: "关于", href: "/about" },
+    { title: "联系", href: "/contact" },
+  ],
+  techStack: [
+    { name: "TypeScript", icon: "typescript" },
+    { name: "React", icon: "react" },
+    { name: "Next.js", icon: "nextjs" },
+    { name: "Go", icon: "go" },
+    { name: "PostgreSQL", icon: "postgresql" },
+    { name: "Docker", icon: "docker" },
+    { name: "Tailwind CSS", icon: "tailwindcss" },
+    { name: "Git", icon: "git" },
+  ],
+};

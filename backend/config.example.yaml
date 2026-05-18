@@ -1,0 +1,38 @@
+# SiYue Blog Configuration
+# Copy this file to config.yaml and modify as needed
+
+app:
+  name: siyue-blog          # Application name
+  version: 0.1.0            # Application version
+  env: development          # Environment: development, staging, production
+
+http:
+  addr: ":8080"             # HTTP server address
+  read_timeout: 10s         # HTTP read timeout
+  write_timeout: 10s        # HTTP write timeout
+
+postgres:
+  host: localhost           # PostgreSQL host
+  port: 5432                # PostgreSQL port
+  user: siyue               # PostgreSQL user
+  password: siyue_dev       # PostgreSQL password
+  dbname: siyue_blog        # PostgreSQL database name
+  sslmode: disable          # PostgreSQL SSL mode: disable, require, verify-ca, verify-full
+  max_open_conns: 25        # Maximum open connections
+  max_idle_conns: 10        # Maximum idle connections
+  max_lifetime: 300s        # Connection maximum lifetime
+
+jwt:
+  access_secret: change-me  # JWT access token secret (CHANGE THIS!)
+  refresh_secret: change-me # JWT refresh token secret (CHANGE THIS!)
+  access_ttl: 15m           # Access token TTL
+  refresh_ttl: 168h         # Refresh token TTL (7 days)
+
+cors:
+  allow_origins:            # Allowed CORS origins
+    - http://localhost:3000
+    - http://localhost:3001
+
+log:
+  level: debug              # Log level: debug, info, warn, error
+  format: console           # Log format: console, json
