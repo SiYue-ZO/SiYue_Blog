@@ -40,7 +40,11 @@ func main() {
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Failed to access database pool")
 	}
-	defer sqlDB.Close()
+	defer func() {
+		if err := sqlDB.Close(); err != nil {
+			logger.Error().Err(err).Msg("Failed to close database pool")
+		}
+	}()
 	migrationCtx, migrationCancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	err = migrations.Up(migrationCtx, db)
 	migrationCancel()

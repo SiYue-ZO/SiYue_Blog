@@ -142,7 +142,9 @@ func Up(ctx context.Context, db *gorm.DB) error {
 	if err != nil {
 		return fmt.Errorf("reserve migration connection: %w", err)
 	}
-	defer conn.Close()
+	defer func() {
+		_ = conn.Close()
+	}()
 	if _, err := conn.ExecContext(ctx, `SELECT pg_advisory_lock(7411052026)`); err != nil {
 		return fmt.Errorf("acquire migration lock: %w", err)
 	}
