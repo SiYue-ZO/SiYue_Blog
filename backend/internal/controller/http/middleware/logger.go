@@ -27,6 +27,7 @@ func Logger(log zerolog.Logger) gin.HandlerFunc {
 		}
 
 		event.
+			Str("request_id", c.GetString("request_id")).
 			Str("method", c.Request.Method).
 			Str("path", path).
 			Str("query", query).

@@ -22,6 +22,11 @@ func (m *MockPostRepo) Create(ctx context.Context, post *entity.Post) error {
 	return args.Error(0)
 }
 
+func (m *MockPostRepo) CreateWithTags(ctx context.Context, post *entity.Post, tags []entity.Tag) error {
+	args := m.Called(ctx, post, tags)
+	return args.Error(0)
+}
+
 func (m *MockPostRepo) GetByID(ctx context.Context, id uint64) (*entity.Post, error) {
 	args := m.Called(ctx, id)
 	if args.Get(0) == nil {
@@ -43,6 +48,11 @@ func (m *MockPostRepo) List(ctx context.Context, offset, limit int, tag string, 
 	return args.Get(0).([]entity.Post), args.Get(1).(int64), args.Error(2)
 }
 
+func (m *MockPostRepo) ListAdmin(ctx context.Context, offset, limit int, status string, search string) ([]entity.Post, int64, error) {
+	args := m.Called(ctx, offset, limit, status, search)
+	return args.Get(0).([]entity.Post), args.Get(1).(int64), args.Error(2)
+}
+
 func (m *MockPostRepo) ListFeatured(ctx context.Context, limit int) ([]entity.Post, error) {
 	args := m.Called(ctx, limit)
 	return args.Get(0).([]entity.Post), args.Error(1)
@@ -50,6 +60,11 @@ func (m *MockPostRepo) ListFeatured(ctx context.Context, limit int) ([]entity.Po
 
 func (m *MockPostRepo) Update(ctx context.Context, post *entity.Post) error {
 	args := m.Called(ctx, post)
+	return args.Error(0)
+}
+
+func (m *MockPostRepo) UpdateWithTags(ctx context.Context, post *entity.Post, tags []entity.Tag, replaceTags bool) error {
+	args := m.Called(ctx, post, tags, replaceTags)
 	return args.Error(0)
 }
 
@@ -113,14 +128,15 @@ func TestCreatePost(t *testing.T) {
 	now := time.Now()
 
 	input := usecase.CreatePostInput{
-		Title:   "Test Post",
-		Slug:    "test-post",
-		Excerpt: "This is a test post",
-		Content: "Test content",
-		Status:  "published",
+		Title:    "Test Post",
+		Slug:     "test-post",
+		Excerpt:  "This is a test post",
+		Content:  "Test content",
+		Status:   "published",
+		AuthorID: 1,
 	}
 
-	mockPostRepo.On("Create", ctx, mock.AnythingOfType("*entity.Post")).
+	mockPostRepo.On("CreateWithTags", ctx, mock.AnythingOfType("*entity.Post"), []entity.Tag{}).
 		Run(func(args mock.Arguments) {
 			post := args.Get(1).(*entity.Post)
 			post.ID = 1
@@ -138,6 +154,15 @@ func TestCreatePost(t *testing.T) {
 	assert.Equal(t, entity.PostStatusPublished, result.Status)
 	assert.NotNil(t, result.PublishedAt)
 	mockPostRepo.AssertExpectations(t)
+}
+
+func TestCreateRejectsPublishedPostWithoutContent(t *testing.T) {
+	uc := NewUseCase(new(MockPostRepo), new(MockTagRepo))
+	result, err := uc.Create(context.Background(), usecase.CreatePostInput{
+		Title: "Empty", Slug: "empty", Status: "published", AuthorID: 1,
+	})
+	assert.Nil(t, result)
+	assert.ErrorContains(t, err, "must contain body content")
 }
 
 func TestGetPostBySlug(t *testing.T) {

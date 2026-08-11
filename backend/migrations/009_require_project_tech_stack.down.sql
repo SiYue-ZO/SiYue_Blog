@@ -1,0 +1,3 @@
+ALTER TABLE projects
+    ALTER COLUMN tech_stack DROP NOT NULL,
+    ALTER COLUMN tech_stack DROP DEFAULT;

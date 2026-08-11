@@ -2,9 +2,12 @@ package repo
 
 import (
 	"context"
+	"errors"
 
 	"siyue-blog/internal/entity"
 )
+
+var ErrSessionReused = errors.New("refresh session reused")
 
 type UserRepo interface {
 	Create(ctx context.Context, user *entity.User) error
@@ -14,15 +17,33 @@ type UserRepo interface {
 	Update(ctx context.Context, user *entity.User) error
 }
 
+type SessionRepo interface {
+	Create(ctx context.Context, session *entity.AuthSession) error
+	Rotate(ctx context.Context, oldHash string, replacement *entity.AuthSession) error
+	Revoke(ctx context.Context, tokenHash string) error
+	RevokeAllForUser(ctx context.Context, userID uint64) error
+}
+
 type PostRepo interface {
 	Create(ctx context.Context, post *entity.Post) error
+	CreateWithTags(ctx context.Context, post *entity.Post, tags []entity.Tag) error
 	GetByID(ctx context.Context, id uint64) (*entity.Post, error)
 	GetBySlug(ctx context.Context, slug string) (*entity.Post, error)
 	List(ctx context.Context, offset, limit int, tag string, search string) ([]entity.Post, int64, error)
+	ListAdmin(ctx context.Context, offset, limit int, status string, search string) ([]entity.Post, int64, error)
 	ListFeatured(ctx context.Context, limit int) ([]entity.Post, error)
 	Update(ctx context.Context, post *entity.Post) error
+	UpdateWithTags(ctx context.Context, post *entity.Post, tags []entity.Tag, replaceTags bool) error
 	Delete(ctx context.Context, id uint64) error
 	IncrementViewCount(ctx context.Context, id uint64) error
+}
+
+type ContactRepo interface {
+	Create(ctx context.Context, message *entity.ContactMessage) error
+	List(ctx context.Context, offset, limit int, status string) ([]entity.ContactMessage, int64, error)
+	GetByID(ctx context.Context, id uint64) (*entity.ContactMessage, error)
+	UpdateStatus(ctx context.Context, id uint64, status entity.ContactStatus) error
+	Delete(ctx context.Context, id uint64) error
 }
 
 type TagRepo interface {
@@ -37,7 +58,7 @@ type TagRepo interface {
 type ProjectRepo interface {
 	Create(ctx context.Context, project *entity.Project) error
 	GetByID(ctx context.Context, id uint64) (*entity.Project, error)
-	List(ctx context.Context) ([]entity.Project, error)
+	List(ctx context.Context, visibleOnly bool) ([]entity.Project, error)
 	ListFeatured(ctx context.Context) ([]entity.Project, error)
 	Update(ctx context.Context, project *entity.Project) error
 	Delete(ctx context.Context, id uint64) error

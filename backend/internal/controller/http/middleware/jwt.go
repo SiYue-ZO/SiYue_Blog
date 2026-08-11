@@ -14,20 +14,27 @@ import (
 func JWTAuth(cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
+		tokenValue := ""
 		if authHeader == "" {
+			tokenValue, _ = c.Cookie("access_token")
+		}
+		if authHeader == "" && tokenValue == "" {
 			shared.Error(c, http.StatusUnauthorized, shared.ErrCodeUnauthorized, "missing authorization header")
 			c.Abort()
 			return
 		}
 
-		parts := strings.SplitN(authHeader, " ", 2)
-		if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
-			shared.Error(c, http.StatusUnauthorized, shared.ErrCodeUnauthorized, "invalid authorization format")
-			c.Abort()
-			return
+		if authHeader != "" {
+			parts := strings.SplitN(authHeader, " ", 2)
+			if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
+				shared.Error(c, http.StatusUnauthorized, shared.ErrCodeUnauthorized, "invalid authorization format")
+				c.Abort()
+				return
+			}
+			tokenValue = parts[1]
 		}
 
-		claims, err := jwtutil.ValidateToken(cfg.JWT.AccessSecret, parts[1])
+		claims, err := jwtutil.ValidateToken(cfg.JWT.AccessSecret, tokenValue)
 		if err != nil {
 			shared.Error(c, http.StatusUnauthorized, shared.ErrCodeInvalidToken, "invalid or expired token")
 			c.Abort()
@@ -44,7 +51,8 @@ func JWTAuth(cfg *config.Config) gin.HandlerFunc {
 func AdminOnly() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		role, exists := c.Get("role")
-		if !exists || role.(string) != "admin" {
+		roleValue, ok := role.(string)
+		if !exists || !ok || roleValue != "admin" {
 			shared.Error(c, http.StatusForbidden, shared.ErrCodeForbidden, "admin access required")
 			c.Abort()
 			return

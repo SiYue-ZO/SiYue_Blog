@@ -1,116 +1,86 @@
-import type { Metadata } from "next";
-import Link from "next/link";
-import { Calendar, Clock, Search } from "lucide-react";
+/* eslint-disable @next/next/no-img-element */
 
-import { getAllPosts, getAllTags } from "@/lib/posts";
+import Link from "next/link";
+import { Calendar, Eye, Search, FileText } from "lucide-react";
+
+import { getPosts, getTags } from "@/lib/content";
+import { pageMetadata } from "@/lib/metadata";
 import { formatDate } from "@/lib/utils";
 
-export const metadata: Metadata = {
-  title: "博客",
-  description: "阅读我的技术文章和思考",
-};
+export const metadata = pageMetadata("博客", "阅读我的技术文章和思考", "/blog");
+export const dynamic = "force-dynamic";
 
-export default function BlogPage() {
-  const posts = getAllPosts();
-  const tags = getAllTags();
+type Props = { searchParams: Promise<{ q?: string; tag?: string; page?: string }> };
+
+export default async function BlogPage({ searchParams }: Props) {
+  const query = await searchParams;
+  const page = Math.max(1, Number(query.page) || 1);
+  const [posts, tags] = await Promise.all([
+    getPosts({ page, page_size: 9, search: query.q?.trim(), tag: query.tag }),
+    getTags(),
+  ]);
+
+  const pageHref = (target: number) => {
+    const params = new URLSearchParams();
+    if (query.q) params.set("q", query.q);
+    if (query.tag) params.set("tag", query.tag);
+    params.set("page", String(target));
+    return `/blog?${params}`;
+  };
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8 md:py-16">
+    <div className="page-shell py-12 md:py-16">
       <div className="space-y-8">
-        <div className="space-y-4">
+        <div className="space-y-3">
+          <p className="eyebrow">Writing</p>
           <h1 className="text-4xl font-bold">博客</h1>
-          <p className="text-lg text-muted-foreground">
-            分享我的技术思考和开发经验
-          </p>
+          <p className="text-lg text-muted-foreground">记录技术实践，也记录持续思考。</p>
         </div>
 
-        {/* Search */}
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="搜索文章..."
-            className="w-full rounded-md border border-border bg-background py-2 pl-10 pr-4 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-          />
-        </div>
+        <form action="/blog" className="relative max-w-xl" role="search">
+          <label htmlFor="blog-search" className="sr-only">搜索文章</label>
+          <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input id="blog-search" name="q" defaultValue={query.q} placeholder="搜索标题与摘要…" className="input pl-11 pr-24" />
+          {query.tag && <input type="hidden" name="tag" value={query.tag} />}
+          <button className="absolute right-1.5 top-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">搜索</button>
+        </form>
 
-        {/* Tags */}
-        <div className="flex flex-wrap gap-2">
-          <Link
-            href="/blog"
-            className="inline-flex items-center rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground"
-          >
-            全部
-          </Link>
+        <div className="flex flex-wrap gap-2" aria-label="文章标签">
+          <Link href={query.q ? `/blog?q=${encodeURIComponent(query.q)}` : "/blog"} className={!query.tag ? "tag-active" : "tag"}>全部</Link>
           {tags.map((tag) => (
-            <Link
-              key={tag.name}
-              href={`/tags/${tag.name.toLowerCase()}`}
-              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
-            >
-              {tag.name}
-              <span className="text-xs text-muted-foreground">
-                {tag.count}
-              </span>
+            <Link key={tag.id} href={`/blog?tag=${encodeURIComponent(tag.slug)}${query.q ? `&q=${encodeURIComponent(query.q)}` : ""}`} className={query.tag === tag.slug ? "tag-active" : "tag"}>
+              {tag.name}<span className="opacity-60">{tag.post_count ?? 0}</span>
             </Link>
           ))}
         </div>
 
-        {/* Posts */}
-        {posts.length > 0 ? (
+        {posts.list.length ? (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {posts.map((post) => (
-              <article
-                key={post.slug}
-                className="group relative overflow-hidden rounded-lg border border-border/50 bg-card p-6 transition-all hover:border-primary/50 hover:shadow-lg"
-              >
-                <Link
-                  href={`/blog/${post.slug}`}
-                  className="block space-y-3"
-                >
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Calendar size={14} />
-                    <time dateTime={post.date}>
-                      {formatDate(post.date)}
-                    </time>
-                    <span className="mx-1">·</span>
-                    <Clock size={14} />
-                    <span>{post.readingTime} 分钟阅读</span>
+            {posts.list.map((post) => (
+              <article key={post.id} className="surface-card group p-6">
+                <Link href={`/blog/${post.slug}`} className="flex h-full flex-col">
+                  {post.cover_image && <img src={post.cover_image} alt="" loading="lazy" referrerPolicy="no-referrer" className="mb-5 aspect-video w-full rounded-xl border border-border/60 object-cover" />}
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <span className="inline-flex items-center gap-1"><Calendar size={13} />{formatDate(post.published_at)}</span>
+                    <span className="inline-flex items-center gap-1"><Eye size={13} />{post.view_count}</span>
                   </div>
-
-                  <h2 className="text-xl font-semibold line-clamp-2 group-hover:text-primary transition-colors">
-                    {post.title}
-                  </h2>
-
-                  {post.excerpt && (
-                    <p className="text-sm text-muted-foreground line-clamp-3">
-                      {post.excerpt}
-                    </p>
-                  )}
-
-                  {post.tags && post.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {post.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="inline-flex items-center rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                  <h2 className="mt-4 text-xl font-semibold transition-colors group-hover:text-primary">{post.title}</h2>
+                  <p className="mt-3 line-clamp-3 flex-1 text-sm leading-6 text-muted-foreground">{post.excerpt}</p>
+                  <div className="mt-5 flex flex-wrap gap-2">{post.tags?.map((tag) => <span key={tag.id} className="badge">{tag.name}</span>)}</div>
                 </Link>
               </article>
             ))}
           </div>
         ) : (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">暂无文章</p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              在 <code>src/content/posts/</code> 目录下添加 MDX 文件开始写作
-            </p>
-          </div>
+          <div className="empty-state"><FileText className="h-8 w-8" /><h2>没有找到文章</h2><p>换个关键词或标签试试。</p></div>
+        )}
+
+        {posts.total_pages > 1 && (
+          <nav className="flex items-center justify-center gap-3" aria-label="文章分页">
+            {page > 1 && <Link className="button-secondary" href={pageHref(page - 1)}>上一页</Link>}
+            <span className="text-sm text-muted-foreground">{page} / {posts.total_pages}</span>
+            {page < posts.total_pages && <Link className="button-secondary" href={pageHref(page + 1)}>下一页</Link>}
+          </nav>
         )}
       </div>
     </div>

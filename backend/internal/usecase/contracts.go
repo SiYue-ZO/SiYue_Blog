@@ -2,24 +2,38 @@ package usecase
 
 import (
 	"context"
+	"errors"
 
 	"siyue-blog/internal/entity"
 )
+
+var ErrInvalidPasswordChange = errors.New("invalid password change")
 
 type AuthUseCase interface {
 	Login(ctx context.Context, email, password string) (accessToken, refreshToken string, user *entity.User, err error)
 	Register(ctx context.Context, username, email, password string) (*entity.User, error)
 	RefreshToken(ctx context.Context, refreshToken string) (newAccessToken, newRefreshToken string, err error)
+	Logout(ctx context.Context, refreshToken string) error
+	ChangePassword(ctx context.Context, userID uint64, currentPassword, newPassword string) error
 }
 
 type PostUseCase interface {
 	Create(ctx context.Context, input CreatePostInput) (*entity.Post, error)
+	GetByID(ctx context.Context, id uint64) (*entity.Post, error)
 	GetBySlug(ctx context.Context, slug string) (*entity.Post, error)
 	List(ctx context.Context, params ListPostsParams) ([]entity.Post, int64, error)
+	ListAdmin(ctx context.Context, params ListAdminPostsParams) ([]entity.Post, int64, error)
 	ListFeatured(ctx context.Context, limit int) ([]entity.Post, error)
 	Update(ctx context.Context, id uint64, input UpdatePostInput) (*entity.Post, error)
 	Delete(ctx context.Context, id uint64) error
 	IncrementViewCount(ctx context.Context, id uint64) error
+}
+
+type ContactUseCase interface {
+	Create(ctx context.Context, input CreateContactInput) (*entity.ContactMessage, error)
+	List(ctx context.Context, page, pageSize int, status string) ([]entity.ContactMessage, int64, error)
+	UpdateStatus(ctx context.Context, id uint64, status string) error
+	Delete(ctx context.Context, id uint64) error
 }
 
 type TagUseCase interface {
@@ -30,6 +44,7 @@ type TagUseCase interface {
 
 type ProjectUseCase interface {
 	List(ctx context.Context) ([]entity.Project, error)
+	ListAdmin(ctx context.Context) ([]entity.Project, error)
 	ListFeatured(ctx context.Context) ([]entity.Project, error)
 	Create(ctx context.Context, input CreateProjectInput) (*entity.Project, error)
 	Update(ctx context.Context, id uint64, input UpdateProjectInput) (*entity.Project, error)
@@ -37,14 +52,15 @@ type ProjectUseCase interface {
 }
 
 type CreatePostInput struct {
-	Title      string   `json:"title" binding:"required"`
-	Slug       string   `json:"slug" binding:"required"`
-	Excerpt    string   `json:"excerpt"`
+	Title      string   `json:"title" binding:"required,max=255"`
+	Slug       string   `json:"slug" binding:"required,max=255"`
+	Excerpt    string   `json:"excerpt" binding:"max=500"`
 	Content    string   `json:"content"`
 	CoverImage string   `json:"cover_image"`
 	Status     string   `json:"status"`
 	IsPinned   bool     `json:"is_pinned"`
 	TagIDs     []uint64 `json:"tag_ids"`
+	AuthorID   uint64   `json:"-"`
 }
 
 type UpdatePostInput struct {
@@ -65,6 +81,20 @@ type ListPostsParams struct {
 	Search   string
 }
 
+type ListAdminPostsParams struct {
+	Page     int
+	PageSize int
+	Status   string
+	Search   string
+}
+
+type CreateContactInput struct {
+	Name    string
+	Email   string
+	Message string
+	IPHash  string
+}
+
 type CreateProjectInput struct {
 	Title       string   `json:"title" binding:"required"`
 	Description string   `json:"description"`
@@ -73,6 +103,7 @@ type CreateProjectInput struct {
 	ImageURL    string   `json:"image_url"`
 	TechStack   []string `json:"tech_stack"`
 	IsFeatured  bool     `json:"is_featured"`
+	IsVisible   *bool    `json:"is_visible"`
 	SortOrder   int      `json:"sort_order"`
 }
 
@@ -84,5 +115,6 @@ type UpdateProjectInput struct {
 	ImageURL    *string  `json:"image_url"`
 	TechStack   []string `json:"tech_stack"`
 	IsFeatured  *bool    `json:"is_featured"`
+	IsVisible   *bool    `json:"is_visible"`
 	SortOrder   *int     `json:"sort_order"`
 }

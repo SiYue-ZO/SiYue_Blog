@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowDown, Github, Mail } from "lucide-react";
+import { ArrowDown, Code2, Mail } from "lucide-react";
 import Link from "next/link";
 
 import { siteConfig } from "@/lib/constants";
@@ -87,7 +87,7 @@ export function Hero() {
               className="text-muted-foreground hover:text-foreground transition-colors"
               aria-label="GitHub"
             >
-              <Github size={24} />
+              <Code2 size={24} />
             </a>
             <a
               href={`mailto:${siteConfig.author.email}`}

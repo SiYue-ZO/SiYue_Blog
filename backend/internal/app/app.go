@@ -31,10 +31,13 @@ func NewApp(cfg *config.Config, log zerolog.Logger, engine *gin.Engine) *App {
 
 func (a *App) Run() error {
 	srv := &http.Server{
-		Addr:         a.cfg.HTTP.Addr,
-		Handler:      a.engine,
-		ReadTimeout:  a.cfg.HTTP.ReadTimeout,
-		WriteTimeout: a.cfg.HTTP.WriteTimeout,
+		Addr:              a.cfg.HTTP.Addr,
+		Handler:           a.engine,
+		ReadTimeout:       a.cfg.HTTP.ReadTimeout,
+		ReadHeaderTimeout: a.cfg.HTTP.ReadTimeout,
+		WriteTimeout:      a.cfg.HTTP.WriteTimeout,
+		IdleTimeout:       a.cfg.HTTP.IdleTimeout,
+		MaxHeaderBytes:    1 << 20,
 	}
 
 	// Start server in goroutine

@@ -24,6 +24,9 @@ func ParsePagination(c *gin.Context) PaginationParams {
 	if page < 1 {
 		page = defaultPage
 	}
+	if page > 100000 {
+		page = 100000
+	}
 	if pageSize < 1 {
 		pageSize = defaultPageSize
 	}

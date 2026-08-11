@@ -21,6 +21,21 @@ func (r *postRepo) Create(ctx context.Context, post *entity.Post) error {
 	return r.db.WithContext(ctx).Create(post).Error
 }
 
+func (r *postRepo) CreateWithTags(ctx context.Context, post *entity.Post, tags []entity.Tag) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(post).Error; err != nil {
+			return err
+		}
+		if len(tags) > 0 {
+			if err := tx.Model(post).Association("Tags").Replace(tags); err != nil {
+				return err
+			}
+		}
+		post.Tags = tags
+		return nil
+	})
+}
+
 func (r *postRepo) GetByID(ctx context.Context, id uint64) (*entity.Post, error) {
 	var post entity.Post
 	err := r.db.WithContext(ctx).
@@ -38,7 +53,7 @@ func (r *postRepo) GetBySlug(ctx context.Context, slug string) (*entity.Post, er
 	err := r.db.WithContext(ctx).
 		Preload("Tags").
 		Preload("Author").
-		Where("slug = ?", slug).
+		Where("slug = ? AND status = ? AND published_at IS NOT NULL AND published_at <= NOW()", slug, entity.PostStatusPublished).
 		First(&post).Error
 	if err != nil {
 		return nil, fmt.Errorf("get post by slug: %w", err)
@@ -53,7 +68,7 @@ func (r *postRepo) List(ctx context.Context, offset, limit int, tag string, sear
 	query := r.db.WithContext(ctx).Model(&entity.Post{})
 
 	// Filter by status
-	query = query.Where("status = ?", entity.PostStatusPublished)
+	query = query.Where("status = ? AND published_at IS NOT NULL AND published_at <= NOW()", entity.PostStatusPublished)
 
 	// Filter by tag
 	if tag != "" {
@@ -64,8 +79,7 @@ func (r *postRepo) List(ctx context.Context, offset, limit int, tag string, sear
 
 	// Search filter
 	if search != "" {
-		query = query.Where("posts.title ILIKE ? OR posts.excerpt ILIKE ?",
-			"%"+search+"%", "%"+search+"%")
+		query = query.Where("(posts.title || ' ' || COALESCE(posts.excerpt, '')) ILIKE ?", "%"+search+"%")
 	}
 
 	// Count total
@@ -75,6 +89,7 @@ func (r *postRepo) List(ctx context.Context, offset, limit int, tag string, sear
 
 	// Fetch posts with relations
 	err := query.
+		Omit("content").
 		Preload("Tags").
 		Preload("Author").
 		Order("is_pinned DESC, published_at DESC").
@@ -88,12 +103,34 @@ func (r *postRepo) List(ctx context.Context, offset, limit int, tag string, sear
 	return posts, total, nil
 }
 
+func (r *postRepo) ListAdmin(ctx context.Context, offset, limit int, status string, search string) ([]entity.Post, int64, error) {
+	var posts []entity.Post
+	var total int64
+	query := r.db.WithContext(ctx).Model(&entity.Post{})
+	if status != "" {
+		query = query.Where("status = ?", status)
+	}
+	if search != "" {
+		pattern := "%" + search + "%"
+		query = query.Where("title ILIKE ? OR slug ILIKE ? OR excerpt ILIKE ?", pattern, pattern, pattern)
+	}
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, fmt.Errorf("count admin posts: %w", err)
+	}
+	if err := query.Omit("content").Preload("Tags").Preload("Author").
+		Order("updated_at DESC").Offset(offset).Limit(limit).Find(&posts).Error; err != nil {
+		return nil, 0, fmt.Errorf("list admin posts: %w", err)
+	}
+	return posts, total, nil
+}
+
 func (r *postRepo) ListFeatured(ctx context.Context, limit int) ([]entity.Post, error) {
 	var posts []entity.Post
 	err := r.db.WithContext(ctx).
+		Omit("content").
 		Preload("Tags").
 		Preload("Author").
-		Where("status = ? AND is_pinned = ?", entity.PostStatusPublished, true).
+		Where("status = ? AND is_pinned = ? AND published_at IS NOT NULL AND published_at <= NOW()", entity.PostStatusPublished, true).
 		Order("published_at DESC").
 		Limit(limit).
 		Find(&posts).Error
@@ -107,8 +144,30 @@ func (r *postRepo) Update(ctx context.Context, post *entity.Post) error {
 	return r.db.WithContext(ctx).Save(post).Error
 }
 
+func (r *postRepo) UpdateWithTags(ctx context.Context, post *entity.Post, tags []entity.Tag, replaceTags bool) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Save(post).Error; err != nil {
+			return err
+		}
+		if replaceTags {
+			if err := tx.Model(post).Association("Tags").Replace(tags); err != nil {
+				return err
+			}
+			post.Tags = tags
+		}
+		return nil
+	})
+}
+
 func (r *postRepo) Delete(ctx context.Context, id uint64) error {
-	return r.db.WithContext(ctx).Delete(&entity.Post{}, id).Error
+	result := r.db.WithContext(ctx).Delete(&entity.Post{}, id)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
 }
 
 func (r *postRepo) IncrementViewCount(ctx context.Context, id uint64) error {

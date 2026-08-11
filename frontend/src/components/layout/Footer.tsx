@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Github, Twitter, Mail } from "lucide-react";
+import { Code2, MessageCircle, Mail } from "lucide-react";
 
 import { siteConfig } from "@/lib/constants";
 
@@ -19,24 +19,24 @@ export function Footer() {
           </div>
 
           <div className="flex items-center space-x-6">
-            <a
+            {siteConfig.author.github && <a
               href={siteConfig.author.github}
               target="_blank"
               rel="noopener noreferrer"
               className="text-muted-foreground hover:text-primary transition-colors"
               aria-label="GitHub"
             >
-              <Github size={20} />
-            </a>
-            <a
+              <Code2 size={20} />
+            </a>}
+            {siteConfig.author.twitter && <a
               href={siteConfig.author.twitter}
               target="_blank"
               rel="noopener noreferrer"
               className="text-muted-foreground hover:text-primary transition-colors"
               aria-label="Twitter"
             >
-              <Twitter size={20} />
-            </a>
+              <MessageCircle size={20} />
+            </a>}
             <a
               href={`mailto:${siteConfig.author.email}`}
               className="text-muted-foreground hover:text-primary transition-colors"

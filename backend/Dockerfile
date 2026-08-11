@@ -1,4 +1,4 @@
-FROM golang:1.23-alpine AS builder
+FROM golang:1.26.2-alpine AS builder
 
 WORKDIR /app
 
@@ -6,17 +6,18 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN CGO_ENABLED=0 go build -o server ./cmd/server
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o server ./cmd/server
 
-FROM alpine:3.20
+FROM alpine:3.22
 
 RUN apk --no-cache add ca-certificates tzdata
+RUN addgroup -S -g 10001 app && adduser -S -D -H -u 10001 -G app app
 
 WORKDIR /app
 
-COPY --from=builder /app/server .
-COPY --from=builder /app/migrations ./migrations
-COPY config.yaml .
+COPY --from=builder --chown=app:app /app/server .
+
+USER app
 
 EXPOSE 8080
 

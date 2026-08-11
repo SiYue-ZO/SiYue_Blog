@@ -42,9 +42,9 @@ func (r *tagRepo) GetBySlug(ctx context.Context, slug string) (*entity.Tag, erro
 func (r *tagRepo) List(ctx context.Context) ([]entity.Tag, error) {
 	var tags []entity.Tag
 	err := r.db.WithContext(ctx).
-		Select("tags.*, COUNT(post_tags.post_id) as post_count").
+		Select("tags.*, COUNT(posts.id) as post_count").
 		Joins("LEFT JOIN post_tags ON post_tags.tag_id = tags.id").
-		Joins("LEFT JOIN posts ON posts.id = post_tags.post_id AND posts.status = ?", entity.PostStatusPublished).
+		Joins("LEFT JOIN posts ON posts.id = post_tags.post_id AND posts.status = ? AND posts.published_at IS NOT NULL AND posts.published_at <= NOW()", entity.PostStatusPublished).
 		Group("tags.id").
 		Order("post_count DESC").
 		Find(&tags).Error
@@ -67,5 +67,12 @@ func (r *tagRepo) ListByPostID(ctx context.Context, postID uint64) ([]entity.Tag
 }
 
 func (r *tagRepo) Delete(ctx context.Context, id uint64) error {
-	return r.db.WithContext(ctx).Delete(&entity.Tag{}, id).Error
+	result := r.db.WithContext(ctx).Delete(&entity.Tag{}, id)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
 }

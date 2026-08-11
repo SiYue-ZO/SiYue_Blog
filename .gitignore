@@ -37,19 +37,28 @@ Thumbs.db
 # Node.js
 node_modules/
 .next/
+.pnpm-store/
 out/
 build/
 dist/
-npm-debug.log*
+pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
 # Docker
 docker-compose.override.yml
+backups/
+nginx/ssl/
+caddy/data/
+*.pem
+*.key
 
 # Logs
 *.log
+*.tsbuildinfo
 
 # Temporary files
 tmp/
 temp/
+.go-cache/
+.go-appdata/

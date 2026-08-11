@@ -1,14 +1,16 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
+
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { Calendar, Clock } from "lucide-react";
 
-import { Post } from "@/types";
+import type { PublicPost } from "@/types";
 import { formatDate } from "@/lib/utils";
 
 interface LatestPostsProps {
-  posts: Post[];
+  posts: PublicPost[];
 }
 
 export function LatestPosts({ posts }: LatestPostsProps) {
@@ -36,7 +38,7 @@ export function LatestPosts({ posts }: LatestPostsProps) {
           </Link>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {posts.length ? <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {posts.map((post, index) => (
             <motion.article
               key={post.id}
@@ -48,6 +50,7 @@ export function LatestPosts({ posts }: LatestPostsProps) {
               className="group relative overflow-hidden rounded-lg border border-border/50 bg-card p-6 transition-all hover:border-primary/50 hover:shadow-lg"
             >
               <Link href={`/blog/${post.slug}`} className="block space-y-3">
+                {post.cover_image && <img src={post.cover_image} alt="" loading="lazy" referrerPolicy="no-referrer" className="mb-4 aspect-video w-full rounded-xl border border-border/60 object-cover" />}
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Calendar size={14} />
                   <time dateTime={post.published_at}>
@@ -55,7 +58,7 @@ export function LatestPosts({ posts }: LatestPostsProps) {
                   </time>
                   <span className="mx-1">·</span>
                   <Clock size={14} />
-                  <span>5 分钟阅读</span>
+                  <span>{post.view_count} 次阅读</span>
                 </div>
 
                 <h3 className="text-xl font-semibold line-clamp-2 group-hover:text-primary transition-colors">
@@ -79,7 +82,7 @@ export function LatestPosts({ posts }: LatestPostsProps) {
               </Link>
             </motion.article>
           ))}
-        </div>
+        </div> : <div className="empty-state"><h3>文章即将发布</h3><p>第一篇内容准备好后会出现在这里。</p></div>}
       </motion.div>
     </section>
   );

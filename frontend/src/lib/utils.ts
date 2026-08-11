@@ -14,6 +14,7 @@ export function formatDate(date: string): string {
 }
 
 export function estimateReadingTime(content: string): number {
+  if (!content.trim()) return 0;
   const wordsPerMinute = 200;
   const words = content.trim().split(/\s+/).length;
   return Math.ceil(words / wordsPerMinute);
@@ -22,7 +23,8 @@ export function estimateReadingTime(content: string): number {
 export function slugify(text: string): string {
   return text
     .toLowerCase()
-    .replace(/[^\w\s-]/g, "")
-    .replace(/[\s_-]+/g, "-")
+    .normalize("NFKC")
+    .replace(/[^\p{L}\p{N}]+/gu, "-")
+    .replace(/-+/g, "-")
     .replace(/^-+|-+$/g, "");
 }

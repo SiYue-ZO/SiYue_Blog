@@ -7,6 +7,7 @@ type Tag struct {
 	Name      string    `json:"name" gorm:"type:varchar(50);not null;uniqueIndex"`
 	Slug      string    `json:"slug" gorm:"type:varchar(50);not null;uniqueIndex"`
 	CreatedAt time.Time `json:"created_at" gorm:"autoCreateTime"`
+	PostCount int       `json:"post_count" gorm:"->"`
 
 	// Relations
 	Posts []Post `json:"posts,omitempty" gorm:"many2many:post_tags;"`

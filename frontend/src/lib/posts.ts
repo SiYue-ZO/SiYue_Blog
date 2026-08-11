@@ -43,6 +43,10 @@ export function getPostBySlug(slug: string): {
   const { data, content } = matter(fileContents);
   const frontmatter = data as PostFrontmatter;
 
+  if (!frontmatter.title || !frontmatter.date || Number.isNaN(Date.parse(frontmatter.date))) {
+    throw new Error(`Invalid frontmatter in ${slug}.mdx: title and a valid date are required`);
+  }
+
   const stats = readingTime(content);
 
   return {

@@ -1,12 +1,14 @@
 app:
   name: siyue-blog
-  version: 0.1.0
+  version: 1.0.0
   env: development
 
 http:
   addr: ":8080"
   read_timeout: 10s
   write_timeout: 10s
+  idle_timeout: 60s
+  max_body_bytes: 2097152
 
 postgres:
   host: localhost
@@ -20,10 +22,20 @@ postgres:
   max_lifetime: 300s
 
 jwt:
-  access_secret: change-me-in-production
-  refresh_secret: change-me-in-production
+  access_secret: local-development-access-secret-change-me
+  refresh_secret: local-development-refresh-secret-change-me
   access_ttl: 15m
   refresh_ttl: 168h
+
+auth:
+  allow_registration: false
+  cookie_domain: ""
+  cookie_secure: false
+
+admin:
+  username: admin
+  email: admin@example.local
+  password: local-admin-password-change-me
 
 cors:
   allow_origins:

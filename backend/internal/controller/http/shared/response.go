@@ -46,9 +46,6 @@ func Error(c *gin.Context, httpStatus int, bizCode int, message string) {
 
 func Paginated(c *gin.Context, list interface{}, page, pageSize, total int) {
 	totalPages := (total + pageSize - 1) / pageSize
-	if totalPages < 1 {
-		totalPages = 1
-	}
 	c.JSON(http.StatusOK, Envelope{
 		Code:    0,
 		Message: "success",

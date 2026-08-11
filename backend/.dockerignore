@@ -1,0 +1,6 @@
+.git
+.go-cache
+.go-appdata
+coverage.out
+*.exe
+config.yaml

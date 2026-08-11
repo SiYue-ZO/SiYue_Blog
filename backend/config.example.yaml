@@ -3,13 +3,15 @@
 
 app:
   name: siyue-blog          # Application name
-  version: 0.1.0            # Application version
+  version: 1.0.0            # Application version
   env: development          # Environment: development, staging, production
 
 http:
   addr: ":8080"             # HTTP server address
   read_timeout: 10s         # HTTP read timeout
   write_timeout: 10s        # HTTP write timeout
+  idle_timeout: 60s         # Keep-alive timeout
+  max_body_bytes: 2097152   # Maximum JSON request body size (2 MiB)
 
 postgres:
   host: localhost           # PostgreSQL host
@@ -23,10 +25,20 @@ postgres:
   max_lifetime: 300s        # Connection maximum lifetime
 
 jwt:
-  access_secret: change-me  # JWT access token secret (CHANGE THIS!)
-  refresh_secret: change-me # JWT refresh token secret (CHANGE THIS!)
+  access_secret: replace-with-at-least-32-random-characters
+  refresh_secret: replace-with-a-different-32-character-secret
   access_ttl: 15m           # Access token TTL
   refresh_ttl: 168h         # Refresh token TTL (7 days)
+
+auth:
+  allow_registration: false
+  cookie_domain: ""
+  cookie_secure: false      # Must be true in production
+
+admin:
+  username: admin
+  email: admin@example.local
+  password: replace-with-a-long-random-password
 
 cors:
   allow_origins:            # Allowed CORS origins

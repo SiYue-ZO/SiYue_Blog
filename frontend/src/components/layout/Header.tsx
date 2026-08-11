@@ -17,7 +17,7 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-sm">
       <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link href="/" className="flex items-center space-x-2">
+        <Link href="/" className="flex items-center space-x-2" aria-label={`${siteConfig.name} 首页`}>
           <span className="text-xl font-bold">SiYue</span>
           <span className="text-xl font-bold text-primary">Blog</span>
         </Link>
@@ -30,10 +30,11 @@ export function Header() {
               href={item.href}
               className={cn(
                 "text-sm font-medium transition-colors hover:text-primary",
-                pathname === item.href
+                pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))
                   ? "text-foreground"
                   : "text-muted-foreground"
               )}
+              aria-current={pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href)) ? "page" : undefined}
             >
               {item.title}
             </Link>
@@ -46,6 +47,8 @@ export function Header() {
           className="md:hidden"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-label="Toggle menu"
+          aria-expanded={mobileMenuOpen}
+          aria-controls="mobile-navigation"
         >
           {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
@@ -60,7 +63,7 @@ export function Header() {
             exit={{ opacity: 0, height: 0 }}
             className="md:hidden border-t border-border/40 bg-background"
           >
-            <nav className="mx-auto flex w-full max-w-7xl flex-col space-y-4 py-4 px-4 sm:px-6 lg:px-8">
+            <nav id="mobile-navigation" className="mx-auto flex w-full max-w-7xl flex-col space-y-4 py-4 px-4 sm:px-6 lg:px-8">
               {siteConfig.nav.map((item) => (
                 <Link
                   key={item.href}
@@ -68,10 +71,11 @@ export function Header() {
                   onClick={() => setMobileMenuOpen(false)}
                   className={cn(
                     "text-sm font-medium transition-colors hover:text-primary",
-                    pathname === item.href
+                    pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))
                       ? "text-foreground"
                       : "text-muted-foreground"
                   )}
+                  aria-current={pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href)) ? "page" : undefined}
                 >
                   {item.title}
                 </Link>

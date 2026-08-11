@@ -10,12 +10,16 @@ export function ReadingProgress() {
       const scrollTop = window.scrollY;
       const docHeight =
         document.documentElement.scrollHeight - window.innerHeight;
-      const scrollPercent = (scrollTop / docHeight) * 100;
-      setProgress(Math.min(scrollPercent, 100));
+      const scrollPercent = docHeight > 0 ? (scrollTop / docHeight) * 100 : 100;
+      setProgress(Math.max(0, Math.min(scrollPercent, 100)));
     };
 
+    const frame = requestAnimationFrame(updateProgress);
     window.addEventListener("scroll", updateProgress, { passive: true });
-    return () => window.removeEventListener("scroll", updateProgress);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", updateProgress);
+    };
   }, []);
 
   return (

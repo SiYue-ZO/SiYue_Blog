@@ -1,84 +1,156 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_DB: ${DB_NAME:-siyue_blog}
       POSTGRES_USER: ${DB_USER:-siyue}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - postgres_data_v18:/var/lib/postgresql
     restart: unless-stopped
+    stop_grace_period: 60s
+    shm_size: 256mb
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-siyue} -d ${DB_NAME:-siyue_blog}"]
       interval: 10s
       timeout: 5s
-      retries: 5
-    networks:
-      - app-network
-
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - app-network
+      retries: 10
+    networks: [app-network]
+    logging: &default-logging
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
 
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ${BACKEND_IMAGE:-siyue-blog-backend}:${RELEASE_TAG:-latest}
+    build: ./backend
     depends_on:
       postgres:
         condition: service_healthy
     environment:
-      - GIN_MODE=release
-      - SIYUE_APP_ENV=production
-      - SIYUE_POSTGRES_HOST=postgres
-      - SIYUE_POSTGRES_PORT=5432
-      - SIYUE_POSTGRES_USER=${DB_USER:-siyue}
-      - SIYUE_POSTGRES_PASSWORD=${DB_PASSWORD}
-      - SIYUE_POSTGRES_DBNAME=${DB_NAME:-siyue_blog}
-      - SIYUE_JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
-      - SIYUE_JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      SIYUE_APP_ENV: production
+      SIYUE_POSTGRES_HOST: postgres
+      SIYUE_POSTGRES_PORT: 5432
+      SIYUE_POSTGRES_USER: ${DB_USER:-siyue}
+      SIYUE_POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      SIYUE_POSTGRES_DBNAME: ${DB_NAME:-siyue_blog}
+      SIYUE_POSTGRES_SSLMODE: disable
+      SIYUE_JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?Set a random JWT_ACCESS_SECRET in .env}
+      SIYUE_JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?Set a different JWT_REFRESH_SECRET in .env}
+      SIYUE_ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      SIYUE_ADMIN_EMAIL: ${ADMIN_EMAIL:?Set ADMIN_EMAIL in .env}
+      SIYUE_ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set a strong ADMIN_PASSWORD in .env}
+      SIYUE_AUTH_COOKIE_SECURE: "true"
+      SIYUE_AUTH_ALLOW_REGISTRATION: "false"
+      SIYUE_CORS_ALLOW_ORIGINS: https://${DOMAIN:?Set DOMAIN in .env}
+      SIYUE_LOG_LEVEL: info
+      SIYUE_LOG_FORMAT: json
     restart: unless-stopped
-    networks:
-      - app-network
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/api/v1/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    networks: [app-network]
+    logging: *default-logging
 
   frontend:
+    image: ${FRONTEND_IMAGE:-siyue-blog-frontend}:${RELEASE_TAG:-latest}
     build:
       context: ./frontend
-      dockerfile: Dockerfile
+      args:
+        API_PROXY_URL: http://backend:8080
+        NEXT_PUBLIC_SITE_URL: https://${DOMAIN:?Set DOMAIN in .env}
+        NEXT_PUBLIC_SITE_NAME: ${SITE_NAME:-SiYue Blog}
+        NEXT_PUBLIC_SITE_DESCRIPTION: ${SITE_DESCRIPTION:-记录技术实践与持续思考的个人博客}
+        NEXT_PUBLIC_AUTHOR_NAME: ${AUTHOR_NAME:-SiYue}
+        NEXT_PUBLIC_AUTHOR_BIO: ${AUTHOR_BIO:-专注于构建可靠、清晰且有温度的软件产品。}
+        NEXT_PUBLIC_AUTHOR_EMAIL: ${AUTHOR_EMAIL:?Set AUTHOR_EMAIL in .env}
+        NEXT_PUBLIC_AUTHOR_LOCATION: ${AUTHOR_LOCATION:-中国}
+        NEXT_PUBLIC_AUTHOR_GITHUB: ${AUTHOR_GITHUB:?Set AUTHOR_GITHUB in .env}
+        NEXT_PUBLIC_AUTHOR_TWITTER: ${AUTHOR_TWITTER:-}
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     environment:
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-      - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
+      API_PROXY_URL: http://backend:8080
+      API_INTERNAL_URL: http://backend:8080/api/v1
+      API_INTERNAL_ADMIN_URL: http://backend:8080/api/admin
+      SITE_URL: https://${DOMAIN:?Set DOMAIN in .env}
     restart: unless-stopped
-    networks:
-      - app-network
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /app/.next/cache:uid=1001,gid=1001,mode=0755
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    networks: [app-network]
+    logging: *default-logging
 
-  nginx:
-    image: nginx:alpine
+  caddy:
+    image: caddy:2-alpine
+    environment:
+      DOMAIN: ${DOMAIN:?Set DOMAIN in .env}
     ports:
       - "80:80"
       - "443:443"
+      - "443:443/udp"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
     depends_on:
-      - frontend
-      - backend
+      frontend:
+        condition: service_healthy
     restart: unless-stopped
-    networks:
-      - app-network
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    security_opt: [no-new-privileges:true]
+    networks: [app-network]
+    logging: *default-logging
+
+  backup:
+    image: postgres:18-alpine
+    depends_on:
+      postgres:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGUSER: ${DB_USER:-siyue}
+      PGPASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      PGDATABASE: ${DB_NAME:-siyue_blog}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+      BACKUP_INTERVAL_SECONDS: ${BACKUP_INTERVAL_SECONDS:-86400}
+    volumes:
+      - ./scripts/backup.sh:/usr/local/bin/backup.sh:ro
+      - backups:/backups
+    entrypoint: ["/bin/sh", "/usr/local/bin/backup.sh"]
+    restart: unless-stopped
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    networks: [app-network]
+    logging: *default-logging
 
 volumes:
-  pgdata:
+  postgres_data_v18:
+  caddy_data:
+  caddy_config:
+  backups:
 
 networks:
   app-network:
     driver: bridge
+    internal: false

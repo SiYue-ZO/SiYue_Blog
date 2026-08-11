@@ -13,28 +13,19 @@ interface TableOfContentsProps {
 }
 
 export function TableOfContents({ content }: TableOfContentsProps) {
-  const [headings, setHeadings] = useState<Heading[]>([]);
   const [activeId, setActiveId] = useState<string>("");
+  const [headings, setHeadings] = useState<Heading[]>([]);
 
   useEffect(() => {
-    // Extract headings from content
-    const regex = /^(#{2,3})\s+(.+)$/gm;
-    const extractedHeadings: Heading[] = [];
-    let match;
-
-    while ((match = regex.exec(content)) !== null) {
-      const level = match[1].length;
-      const text = match[2].trim();
-      const id = text
-        .toLowerCase()
-        .replace(/[^\w\s-]/g, "")
-        .replace(/[\s_-]+/g, "-")
-        .replace(/^-+|-+$/g, "");
-
-      extractedHeadings.push({ id, text, level });
-    }
-
-    setHeadings(extractedHeadings);
+    const frame = requestAnimationFrame(() => {
+      const elements = Array.from(document.querySelectorAll<HTMLElement>(".article-content h2[id], .article-content h3[id]"));
+      setHeadings(elements.map((element) => ({
+        id: element.id,
+        text: element.textContent?.trim() || "",
+        level: Number(element.tagName.slice(1)),
+      })).filter((heading) => heading.text));
+    });
+    return () => cancelAnimationFrame(frame);
   }, [content]);
 
   useEffect(() => {

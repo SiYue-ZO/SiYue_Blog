@@ -1,145 +1,80 @@
+/* eslint-disable @next/next/no-img-element */
+
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Calendar, Clock, ArrowLeft, Tag } from "lucide-react";
-import { MDXRemote } from "next-mdx-remote/rsc";
+import { Calendar, ArrowLeft, Tag, Eye } from "lucide-react";
 
-import { getPostBySlug, getPostSlugs, getAllPosts } from "@/lib/posts";
+import { getPostBySlug, getPosts } from "@/lib/content";
 import { formatDate } from "@/lib/utils";
-import { mdxComponents } from "@/components/mdx";
+import { siteConfig } from "@/lib/constants";
+import { MarkdownContent } from "@/components/blog/MarkdownContent";
 import { ReadingProgress } from "@/components/blog/ReadingProgress";
 import { TableOfContents } from "@/components/blog/TableOfContents";
 
-type Props = {
-  params: Promise<{ slug: string }>;
-};
-
-export async function generateStaticParams() {
-  const slugs = getPostSlugs();
-  return slugs.map((slug) => ({ slug }));
-}
+export const dynamic = "force-dynamic";
+type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const post = getPostBySlug(slug);
-
-  if (!post) {
-    return { title: "文章未找到" };
-  }
-
+  const post = await getPostBySlug(slug);
+  if (!post) return { title: "文章未找到" };
+  const url = `${siteConfig.url}/blog/${post.slug}`;
   return {
-    title: post.meta.title,
-    description: post.meta.excerpt || post.content.substring(0, 160),
+    title: post.title,
+    description: post.excerpt,
+    alternates: { canonical: url },
     openGraph: {
-      title: post.meta.title,
-      description: post.meta.excerpt,
-      type: "article",
-      publishedTime: post.meta.date,
-      tags: post.meta.tags,
+      title: post.title, description: post.excerpt, type: "article", url,
+      publishedTime: post.published_at || undefined, modifiedTime: post.updated_at,
+      tags: post.tags?.map((tag) => tag.name), images: post.cover_image ? [post.cover_image] : undefined,
     },
+    twitter: { card: "summary_large_image", title: post.title, description: post.excerpt },
   };
 }
 
 export default async function BlogPostPage({ params }: Props) {
   const { slug } = await params;
-  const post = getPostBySlug(slug);
-
-  if (!post) {
-    notFound();
-  }
-
-  // Get related posts
-  const allPosts = getAllPosts();
-  const relatedPosts = allPosts
-    .filter(
-      (p) =>
-        p.slug !== slug &&
-        p.tags?.some((tag) => post.meta.tags?.includes(tag))
-    )
-    .slice(0, 3);
+  const post = await getPostBySlug(slug);
+  if (!post?.content) notFound();
+  const all = await getPosts({ page: 1, page_size: 50 });
+  const tagIds = new Set(post.tags?.map((tag) => tag.id));
+  const related = all.list.filter((item) => item.slug !== slug && item.tags?.some((tag) => tagIds.has(tag.id))).slice(0, 3);
+  const published = post.published_at || post.updated_at;
+  const jsonLd = {
+    "@context": "https://schema.org", "@type": "BlogPosting", headline: post.title,
+    description: post.excerpt, datePublished: published, dateModified: post.updated_at,
+    mainEntityOfPage: `${siteConfig.url}/blog/${post.slug}`,
+    author: { "@type": "Person", name: post.author?.username || siteConfig.author.name },
+  };
 
   return (
     <>
       <ReadingProgress />
-      <div className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8 md:py-16">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
+      <div className="page-shell py-10 md:py-16">
         <div className="flex gap-12">
-          {/* Main content */}
-          <article className="flex-1 max-w-3xl">
-            <Link
-              href="/blog"
-              className="mb-8 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ArrowLeft size={16} />
-              返回博客列表
-            </Link>
-
-            <header className="mb-10 space-y-4">
-              <h1 className="text-4xl font-bold tracking-tight lg:text-5xl">
-                {post.meta.title}
-              </h1>
-
+          <article className="min-w-0 max-w-3xl flex-1">
+            <Link href="/blog" className="text-link mb-8"><ArrowLeft size={16} />返回文章列表</Link>
+            <header className="mb-10 space-y-5">
+              <h1 className="text-4xl font-bold tracking-tight lg:text-5xl">{post.title}</h1>
+              <p className="text-lg leading-8 text-muted-foreground">{post.excerpt}</p>
               <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                <div className="flex items-center gap-1.5">
-                  <Calendar size={14} />
-                  <time dateTime={post.meta.date}>
-                    {formatDate(post.meta.date)}
-                  </time>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Clock size={14} />
-                  <span>{post.meta.readingTime} 分钟阅读</span>
-                </div>
+                <span className="inline-flex items-center gap-1.5"><Calendar size={14} /><time dateTime={published}>{formatDate(published)}</time></span>
+                <span className="inline-flex items-center gap-1.5"><Eye size={14} />{post.view_count} 次阅读</span>
               </div>
-
-              {post.meta.tags && post.meta.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {post.meta.tags.map((tag) => (
-                    <Link
-                      key={tag}
-                      href={`/tags/${tag.toLowerCase()}`}
-                      className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/20 transition-colors"
-                    >
-                      <Tag size={12} />
-                      {tag}
-                    </Link>
-                  ))}
-                </div>
-              )}
+              <div className="flex flex-wrap gap-2">{post.tags?.map((tag) => <Link key={tag.id} href={`/blog?tag=${encodeURIComponent(tag.slug)}`} className="tag"><Tag size={12} />{tag.name}</Link>)}</div>
             </header>
-
-            {/* MDX Content */}
-            <div className="prose prose-invert max-w-none">
-              <MDXRemote source={post.content} components={mdxComponents} />
-            </div>
-
-            {/* Related posts */}
-            {relatedPosts.length > 0 && (
-              <div className="mt-16 border-t border-border/50 pt-8">
-                <h3 className="text-xl font-semibold mb-6">相关文章</h3>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {relatedPosts.map((related) => (
-                    <Link
-                      key={related.slug}
-                      href={`/blog/${related.slug}`}
-                      className="group rounded-lg border border-border/50 bg-card p-4 transition-all hover:border-primary/50 hover:shadow-md"
-                    >
-                      <h4 className="font-medium line-clamp-2 group-hover:text-primary transition-colors">
-                        {related.title}
-                      </h4>
-                      <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
-                        {related.excerpt}
-                      </p>
-                    </Link>
-                  ))}
-                </div>
-              </div>
+            {post.cover_image && <img src={post.cover_image} alt={`${post.title} 封面`} referrerPolicy="no-referrer" className="mb-10 aspect-video w-full rounded-2xl border border-border/60 object-cover shadow-sm" />}
+            <MarkdownContent content={post.content} />
+            {related.length > 0 && (
+              <section className="mt-16 border-t border-border pt-8">
+                <h2 className="text-xl font-semibold">继续阅读</h2>
+                <div className="mt-5 grid gap-4 sm:grid-cols-2">{related.map((item) => <Link key={item.id} href={`/blog/${item.slug}`} className="surface-card p-4"><h3 className="font-medium">{item.title}</h3><p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{item.excerpt}</p></Link>)}</div>
+              </section>
             )}
           </article>
-
-          {/* Sidebar - Table of Contents */}
-          <aside className="hidden xl:block w-64 shrink-0">
-            <TableOfContents content={post.content} />
-          </aside>
+          <aside className="hidden w-64 shrink-0 xl:block"><TableOfContents content={post.content} /></aside>
         </div>
       </div>
     </>
