@@ -12,8 +12,10 @@ import (
 	"siyue-blog/internal/repo/persistence"
 	authUC "siyue-blog/internal/usecase/auth"
 	contactUC "siyue-blog/internal/usecase/contact"
+	homePageUC "siyue-blog/internal/usecase/homepage"
 	postUC "siyue-blog/internal/usecase/post"
 	projectUC "siyue-blog/internal/usecase/project"
+	settingsUC "siyue-blog/internal/usecase/settings"
 	tagUC "siyue-blog/internal/usecase/tag"
 	"siyue-blog/migrations"
 	"siyue-blog/pkg/config"
@@ -59,6 +61,8 @@ func main() {
 	tagRepo := persistence.NewTagRepo(db)
 	projectRepo := persistence.NewProjectRepo(db)
 	contactRepo := persistence.NewContactRepo(db)
+	settingsRepo := persistence.NewSettingsRepo(db)
+	homePageRepo := persistence.NewHomePageRepo(db)
 	bootstrapCtx, bootstrapCancel := context.WithTimeout(context.Background(), 30*time.Second)
 	err = bootstrap.EnsureAdmin(bootstrapCtx, userRepo, cfg.Admin)
 	bootstrapCancel()
@@ -72,6 +76,8 @@ func main() {
 	tagUseCase := tagUC.NewUseCase(tagRepo)
 	projectUseCase := projectUC.NewUseCase(projectRepo)
 	contactUseCase := contactUC.NewUseCase(contactRepo)
+	settingsUseCase := settingsUC.NewUseCase(settingsRepo)
+	homePageUseCase := homePageUC.NewUseCase(homePageRepo)
 
 	// Initialize handlers
 	healthHandler := v1.NewHealthHandler(db, cfg)
@@ -81,9 +87,11 @@ func main() {
 	authHandler := v1.NewAuthHandler(authUseCase, cfg)
 	contactHandler := v1.NewContactHandler(contactUseCase, cfg.JWT.RefreshSecret)
 	adminHandler := v1.NewAdminHandler(db)
+	settingsHandler := v1.NewSettingsHandler(settingsUseCase)
+	homePageHandler := v1.NewHomePageHandler(homePageUseCase)
 
 	// Initialize router
-	router := http.NewRouter(cfg, logger, healthHandler, postHandler, tagHandler, projectHandler, authHandler, contactHandler, adminHandler)
+	router := http.NewRouter(cfg, logger, healthHandler, postHandler, tagHandler, projectHandler, authHandler, contactHandler, adminHandler, settingsHandler, homePageHandler)
 
 	// Create and run application
 	application := app.NewApp(cfg, logger, router)

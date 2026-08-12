@@ -20,6 +20,10 @@ describe("estimateReadingTime", () => {
   it("rounds a partial minute up", () => {
     expect(estimateReadingTime("one two three")).toBe(1);
   });
+
+  it("counts Chinese characters instead of treating the note as one word", () => {
+    expect(estimateReadingTime("学".repeat(401))).toBe(2);
+  });
 });
 
 describe("cn", () => {

@@ -2,10 +2,13 @@ import type {
   ApiResponse,
   ContactMessage,
   DashboardStats,
+  HomePageConfig,
+  HomePageContent,
   PaginatedResponse,
   Post,
   PublicPost,
   Project,
+  SiteSettings,
   Tag,
   UserSession,
 } from "@/types";
@@ -110,8 +113,10 @@ export const api = {
     publicRequest<PaginatedResponse<PublicPost>>(`/posts${queryString(params)}`, { cache: "no-store" }),
   getPostBySlug: (slug: string) =>
     publicRequest<PublicPost>(`/posts/${encodeURIComponent(slug)}`, { cache: "no-store" }),
-  getFeaturedPosts: () => publicRequest<PublicPost[]>("/posts/featured", { cache: "no-store" }),
+  getFeaturedPosts: (limit = 3) => publicRequest<PublicPost[]>(`/posts/featured${queryString({ limit })}`, { cache: "no-store" }),
   getTags: () => publicRequest<Tag[]>("/tags", { cache: "no-store" }),
+  getSettings: () => publicRequest<SiteSettings>("/settings", { cache: "no-store" }),
+  getHomePage: () => publicRequest<HomePageConfig>("/home", { cache: "no-store" }),
   getProjects: () => publicRequest<Project[]>("/projects", { cache: "no-store" }),
   getFeaturedProjects: () => publicRequest<Project[]>("/projects/featured", { cache: "no-store" }),
   submitContact: (data: { name: string; email: string; message: string; website?: string }) =>
@@ -126,6 +131,14 @@ export const api = {
   logout: () => publicRequest<{ logged_out: boolean }>("/auth/logout", { method: "POST" }),
 
   getStats: () => adminRequest<DashboardStats>("/stats"),
+  getAdminSettings: () => adminRequest<SiteSettings>("/settings"),
+  updateSettings: (data: Partial<Pick<SiteSettings, "project_page_visible" | "social_links" | "footer">>) =>
+    adminRequest<SiteSettings>("/settings", { method: "PATCH", body: JSON.stringify(data) }),
+  getAdminHomePage: () => adminRequest<HomePageContent>("/home"),
+  saveHomePageDraft: (data: HomePageConfig) =>
+    adminRequest<HomePageContent>("/home/draft", { method: "PUT", body: JSON.stringify(data) }),
+  publishHomePage: () => adminRequest<HomePageContent>("/home/publish", { method: "POST" }),
+  resetHomePageDraft: () => adminRequest<HomePageContent>("/home/reset", { method: "POST" }),
   getAdminPosts: (params: { page?: number; page_size?: number; status?: string; search?: string } = {}) =>
     adminRequest<PaginatedResponse<Post>>(`/posts${queryString(params)}`),
   getAdminPost: (id: number) => adminRequest<Post>(`/posts/${id}`),

@@ -103,6 +103,9 @@
 .article-content a { @apply font-medium text-primary underline decoration-primary/30 underline-offset-4 hover:decoration-primary; }
 .article-content ul { @apply list-disc space-y-2 pl-6; }
 .article-content ol { @apply list-decimal space-y-2 pl-6; }
+.article-content .contains-task-list { @apply list-none pl-0; }
+.article-content .task-list-item { @apply list-none; }
+.article-content .task-list-item input { @apply mr-2 accent-primary; }
 .article-content blockquote { @apply border-l-4 border-primary/40 bg-primary/5 py-2 pl-5 italic text-muted-foreground; }
 .article-content :not(pre) > code { @apply rounded-md bg-muted px-1.5 py-0.5 font-mono text-[0.9em] text-primary; }
 .article-content table { @apply w-full border-collapse overflow-hidden text-sm; }

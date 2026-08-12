@@ -6,14 +6,15 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { Calendar, Clock } from "lucide-react";
 
-import type { PublicPost } from "@/types";
+import type { HomePageConfig, PublicPost } from "@/types";
 import { formatDate } from "@/lib/utils";
 
 interface LatestPostsProps {
   posts: PublicPost[];
+  config: HomePageConfig["sections"]["latest_posts"];
 }
 
-export function LatestPosts({ posts }: LatestPostsProps) {
+export function LatestPosts({ posts, config }: LatestPostsProps) {
   return (
     <section className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 lg:px-8 md:py-24">
       <motion.div
@@ -25,9 +26,9 @@ export function LatestPosts({ posts }: LatestPostsProps) {
       >
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-3xl font-bold">最新文章</h2>
+            <h2 className="text-3xl font-bold">{config.title}</h2>
             <p className="mt-2 text-muted-foreground">
-              分享我的技术思考和经验
+              {config.subtitle}
             </p>
           </div>
           <Link

@@ -10,7 +10,7 @@ import { siteConfig } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 
-export function Header() {
+export function Header({ projectPageVisible }: { projectPageVisible: boolean }) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -24,7 +24,7 @@ export function Header() {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-6">
-          {siteConfig.nav.map((item) => (
+          {siteConfig.nav.filter((item) => projectPageVisible || item.href !== "/projects").map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -64,7 +64,7 @@ export function Header() {
             className="md:hidden border-t border-border/40 bg-background"
           >
             <nav id="mobile-navigation" className="mx-auto flex w-full max-w-7xl flex-col space-y-4 py-4 px-4 sm:px-6 lg:px-8">
-              {siteConfig.nav.map((item) => (
+              {siteConfig.nav.filter((item) => projectPageVisible || item.href !== "/projects").map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}

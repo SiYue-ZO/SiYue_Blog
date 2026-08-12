@@ -1,12 +1,15 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowDown, Code2, Mail } from "lucide-react";
+import { ArrowDown } from "lucide-react";
 import Link from "next/link";
 
 import { siteConfig } from "@/lib/constants";
+import type { HomePageConfig } from "@/types";
 
-export function Hero() {
+export function Hero({ config, projectPageVisible }: { config: HomePageConfig["sections"]["hero"]; projectPageVisible: boolean }) {
+	const highlight = config.highlight || siteConfig.author.name;
+	const subtitle = config.subtitle || siteConfig.author.bio;
   return (
     <section className="relative flex min-h-[80vh] items-center justify-center overflow-hidden px-4">
       {/* Animated gradient background */}
@@ -38,10 +41,10 @@ export function Hero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
-            你好，我是
+            {config.title_prefix}
             <span className="bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent">
               {" "}
-              {siteConfig.author.name}
+              {highlight}
             </span>
           </motion.h1>
 
@@ -51,7 +54,7 @@ export function Hero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
           >
-            {siteConfig.author.bio}
+            {subtitle}
           </motion.p>
 
           <motion.div
@@ -61,42 +64,19 @@ export function Hero() {
             transition={{ duration: 0.5, delay: 0.6 }}
           >
             <Link
-              href="/blog"
+              href={config.primary_button.href}
               className="inline-flex h-11 items-center justify-center rounded-md bg-primary px-8 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90"
             >
-              阅读博客
+              {config.primary_button.label}
             </Link>
-            <Link
-              href="/projects"
+            {projectPageVisible && <Link
+              href={config.secondary_button.href}
               className="inline-flex h-11 items-center justify-center rounded-md border border-border bg-background px-8 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground"
             >
-              查看项目
-            </Link>
+              {config.secondary_button.label}
+            </Link>}
           </motion.div>
 
-          <motion.div
-            className="mt-8 flex items-center justify-center gap-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.8 }}
-          >
-            <a
-              href={siteConfig.author.github}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-muted-foreground hover:text-foreground transition-colors"
-              aria-label="GitHub"
-            >
-              <Code2 size={24} />
-            </a>
-            <a
-              href={`mailto:${siteConfig.author.email}`}
-              className="text-muted-foreground hover:text-foreground transition-colors"
-              aria-label="Email"
-            >
-              <Mail size={24} />
-            </a>
-          </motion.div>
         </motion.div>
 
         <motion.div

@@ -6,13 +6,14 @@ import { motion } from "framer-motion";
 import { Code2, ExternalLink } from "lucide-react";
 import Link from "next/link";
 
-import { Project } from "@/types";
+import type { HomePageConfig, Project } from "@/types";
 
 interface FeaturedProjectsProps {
   projects: Project[];
+  config: HomePageConfig["sections"]["featured_projects"];
 }
 
-export function FeaturedProjects({ projects }: FeaturedProjectsProps) {
+export function FeaturedProjects({ projects, config }: FeaturedProjectsProps) {
   return (
     <section className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 lg:px-8 md:py-24">
       <motion.div
@@ -24,9 +25,9 @@ export function FeaturedProjects({ projects }: FeaturedProjectsProps) {
       >
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-3xl font-bold">精选项目</h2>
+            <h2 className="text-3xl font-bold">{config.title}</h2>
             <p className="mt-2 text-muted-foreground">
-              我最近参与的一些项目
+              {config.subtitle}
             </p>
           </div>
           <Link

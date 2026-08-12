@@ -7,6 +7,8 @@
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
 | GET | `/health` | 数据库与服务健康状态 |
+| GET | `/settings` | 公开站点设置（项目页状态、联系页社交账号与页脚） |
+| GET | `/home` | 已发布的首页区块配置 |
 | POST | `/auth/login` | 登录并设置访问/刷新 Cookie |
 | POST | `/auth/refresh` | 原子轮换刷新会话 |
 | POST | `/auth/logout` | 撤销当前刷新会话并清除 Cookie |
@@ -28,6 +30,11 @@
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
 | GET | `/stats` | 后台统计 |
+| GET/PATCH | `/settings` | 读取/更新站点设置；支持 `project_page_visible`、`social_links`、`footer` |
+| GET | `/home` | 读取首页草稿、发布配置和版本信息 |
+| PUT | `/home/draft` | 保存首页草稿配置 |
+| POST | `/home/publish` | 发布当前首页草稿 |
+| POST | `/home/reset` | 将首页草稿恢复为已发布版本 |
 | POST | `/password` | 修改当前管理员密码并撤销所有刷新会话 |
 | GET/POST | `/posts` | 文章列表/创建 |
 | GET/PUT/DELETE | `/posts/:id` | 文章读取/更新/删除 |
@@ -37,6 +44,21 @@
 | PUT/DELETE | `/projects/:id` | 项目更新/删除 |
 | GET | `/messages` | 联系消息分页 |
 | PATCH/DELETE | `/messages/:id` | 更新消息状态/删除 |
+
+`footer` 支持以下可选备案字段：
+
+```json
+{
+  "filing_icon_url": "/images/beian.png",
+  "icp_number": "粤ICP备12345678号",
+  "icp_url": "https://beian.miit.gov.cn/",
+  "public_security_number": "粤公网安备 44000000000000号",
+  "public_security_url": "https://www.beian.gov.cn/portal/registerSystemInfo",
+  "filing_information": "备案附加信息"
+}
+```
+
+图标支持站内绝对路径或 HTTPS 地址；备案链接只接受 HTTPS 地址。空字段不会在公开页脚中占位。
 
 ## 安全与限制
 

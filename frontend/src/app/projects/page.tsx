@@ -1,14 +1,17 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { Code2, ExternalLink, FolderGit2 } from "lucide-react";
+import { notFound } from "next/navigation";
 
-import { getProjects } from "@/lib/content";
+import { getProjects, getSiteSettings } from "@/lib/content";
 import { pageMetadata } from "@/lib/metadata";
 
 export const metadata = pageMetadata("项目", "查看我的开源项目和作品", "/projects");
 export const dynamic = "force-dynamic";
 
 export default async function ProjectsPage() {
+  const settings = await getSiteSettings();
+  if (!settings.project_page_visible) notFound();
   const projects = await getProjects();
   return (
     <div className="page-shell py-12 md:py-16">

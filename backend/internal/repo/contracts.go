@@ -63,3 +63,15 @@ type ProjectRepo interface {
 	Update(ctx context.Context, project *entity.Project) error
 	Delete(ctx context.Context, id uint64) error
 }
+
+type SettingsRepo interface {
+	Get(ctx context.Context) (*entity.SiteSettings, error)
+	Update(ctx context.Context, projectPageVisible *bool, socialLinks *[]entity.SocialLink, footer *entity.FooterConfig) (*entity.SiteSettings, error)
+}
+
+type HomePageRepo interface {
+	Get(ctx context.Context) (*entity.HomePageContent, error)
+	SaveDraft(ctx context.Context, config entity.HomePageConfig, userID uint64) (*entity.HomePageContent, error)
+	Publish(ctx context.Context, userID uint64) (*entity.HomePageContent, error)
+	ResetDraft(ctx context.Context, userID uint64) (*entity.HomePageContent, error)
+}

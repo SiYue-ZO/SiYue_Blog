@@ -1,12 +1,17 @@
 import "server-only";
 
+import { cache } from "react";
+
 import { api, ApiError } from "@/lib/api";
 import {
   getAllPosts as getLocalPosts,
   getAllTags as getLocalTags,
   getPostBySlug as getLocalPostBySlug,
 } from "@/lib/posts";
-import type { Project, PublicPost, Tag } from "@/types";
+import type { Project, PublicPost, SiteSettings, Tag } from "@/types";
+import type { HomePageConfig } from "@/types";
+import { defaultHomePageConfig } from "@/lib/home-page";
+import { defaultFooterConfig, defaultSocialLinks } from "@/lib/constants";
 
 function localPost(slug: string, index = 0): PublicPost | null {
   const post = getLocalPostBySlug(slug);
@@ -80,3 +85,30 @@ export async function getProjects(featured = false): Promise<Project[]> {
     return [];
   }
 }
+
+export async function getFeaturedPosts(limit = 3): Promise<PublicPost[]> {
+  try {
+    return (await api.getFeaturedPosts(limit)).data;
+  } catch (error) {
+    if (!allowLocalFallback()) throw error;
+    return (await getPosts({ page: 1, page_size: limit })).list.filter((post) => post.is_pinned);
+  }
+}
+
+export const getSiteSettings = cache(async (): Promise<SiteSettings> => {
+  try {
+    return (await api.getSettings()).data;
+  } catch (error) {
+    if (!allowLocalFallback()) throw error;
+    return { project_page_visible: true, social_links: defaultSocialLinks, footer: defaultFooterConfig, updated_at: "" };
+  }
+});
+
+export const getHomePageConfig = cache(async (): Promise<HomePageConfig> => {
+  try {
+    return (await api.getHomePage()).data;
+  } catch (error) {
+    if (!allowLocalFallback()) throw error;
+    return defaultHomePageConfig;
+  }
+});

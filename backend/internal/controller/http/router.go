@@ -22,6 +22,8 @@ func NewRouter(
 	authHandler *v1.AuthHandler,
 	contactHandler *v1.ContactHandler,
 	adminHandler *v1.AdminHandler,
+	settingsHandler *v1.SettingsHandler,
+	homePageHandler *v1.HomePageHandler,
 ) *gin.Engine {
 	if cfg.App.Env == "production" {
 		gin.SetMode(gin.ReleaseMode)
@@ -41,6 +43,8 @@ func NewRouter(
 	{
 		// Health
 		api.GET("/health", healthHandler.Check)
+		api.GET("/settings", settingsHandler.Get)
+		api.GET("/home", homePageHandler.GetPublished)
 
 		// Auth
 		api.POST("/auth/login", middleware.RequireJSON(), middleware.RateLimit(10, 15*time.Minute), authHandler.Login)
@@ -73,6 +77,12 @@ func NewRouter(
 	admin.Use(middleware.AdminOnly())
 	{
 		admin.GET("/stats", adminHandler.Stats)
+		admin.GET("/settings", settingsHandler.Get)
+		admin.PATCH("/settings", middleware.RequireJSON(), settingsHandler.Update)
+		admin.GET("/home", homePageHandler.GetAdmin)
+		admin.PUT("/home/draft", middleware.RequireJSON(), homePageHandler.SaveDraft)
+		admin.POST("/home/publish", homePageHandler.Publish)
+		admin.POST("/home/reset", homePageHandler.ResetDraft)
 		admin.POST("/password", middleware.RequireJSON(), authHandler.ChangePassword)
 		admin.GET("/posts", postHandler.AdminList)
 		admin.GET("/posts/:id", postHandler.AdminGet)

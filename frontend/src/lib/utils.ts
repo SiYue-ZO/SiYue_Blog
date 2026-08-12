@@ -15,9 +15,10 @@ export function formatDate(date: string): string {
 
 export function estimateReadingTime(content: string): number {
   if (!content.trim()) return 0;
-  const wordsPerMinute = 200;
-  const words = content.trim().split(/\s+/).length;
-  return Math.ceil(words / wordsPerMinute);
+  const cjkPattern = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/gu;
+  const cjkCharacters = content.match(cjkPattern)?.length ?? 0;
+  const latinWords = content.replace(cjkPattern, " ").match(/[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/gu)?.length ?? 0;
+  return Math.ceil(cjkCharacters / 400 + latinWords / 200);
 }
 
 export function slugify(text: string): string {

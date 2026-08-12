@@ -3,8 +3,9 @@
 import { motion } from "framer-motion";
 import { Mail, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import type { HomePageConfig } from "@/types";
 
-export function ContactCTA() {
+export function ContactCTA({ config }: { config: HomePageConfig["sections"]["contact_cta"] }) {
   return (
     <section className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 lg:px-8 md:py-24">
       <motion.div
@@ -22,18 +23,18 @@ export function ContactCTA() {
           </div>
 
           <h2 className="text-3xl font-bold md:text-4xl">
-            有想法？聊聊吧
+            {config.title}
           </h2>
 
           <p className="mt-4 text-lg text-muted-foreground">
-            无论是项目合作、技术交流，还是简单的问候，我都很乐意收到你的消息。
+            {config.description}
           </p>
 
           <Link
-            href="/contact"
+            href={config.button.href}
             className="mt-8 inline-flex h-11 items-center justify-center gap-2 rounded-md bg-primary px-8 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90"
           >
-            联系我
+            {config.button.label}
             <ArrowRight size={16} />
           </Link>
         </div>

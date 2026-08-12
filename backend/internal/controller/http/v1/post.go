@@ -109,7 +109,7 @@ func (h *PostHandler) GetBySlug(c *gin.Context) {
 func (h *PostHandler) Featured(c *gin.Context) {
 	limitStr := c.DefaultQuery("limit", "3")
 	limit, _ := strconv.Atoi(limitStr)
-	if limit < 1 || limit > 10 {
+	if limit < 1 || limit > 12 {
 		limit = 3
 	}
 

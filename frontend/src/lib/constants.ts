@@ -30,3 +30,22 @@ export const siteConfig = {
     { name: "Git", icon: "git" },
   ],
 };
+
+export const defaultSocialLinks = [
+  { platform: "github" as const, label: "GitHub", href: siteConfig.author.github },
+  { platform: "email" as const, label: "邮箱", href: `mailto:${siteConfig.author.email}` },
+];
+
+export const defaultFooterConfig = {
+  enabled: true,
+  brand: siteConfig.name,
+  description: siteConfig.description,
+  copyright: `© {year} ${siteConfig.author.name}. All rights reserved.`,
+  show_social_links: true,
+  filing_icon_url: "",
+  icp_number: "",
+  icp_url: "https://beian.miit.gov.cn/",
+  public_security_number: "",
+  public_security_url: "",
+  filing_information: "",
+};

@@ -51,6 +51,19 @@ type ProjectUseCase interface {
 	Delete(ctx context.Context, id uint64) error
 }
 
+type SettingsUseCase interface {
+	Get(ctx context.Context) (*entity.SiteSettings, error)
+	Update(ctx context.Context, projectPageVisible *bool, socialLinks *[]entity.SocialLink, footer *entity.FooterConfig) (*entity.SiteSettings, error)
+}
+
+type HomePageUseCase interface {
+	GetPublished(ctx context.Context) (*entity.HomePageConfig, error)
+	GetAdmin(ctx context.Context) (*entity.HomePageContent, error)
+	SaveDraft(ctx context.Context, config entity.HomePageConfig, userID uint64) (*entity.HomePageContent, error)
+	Publish(ctx context.Context, userID uint64) (*entity.HomePageContent, error)
+	ResetDraft(ctx context.Context, userID uint64) (*entity.HomePageContent, error)
+}
+
 type CreatePostInput struct {
 	Title      string   `json:"title" binding:"required,max=255"`
 	Slug       string   `json:"slug" binding:"required,max=255"`

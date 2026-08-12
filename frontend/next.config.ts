@@ -15,6 +15,9 @@ const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
   compress: true,
+  // TypeScript 6 exposes the compiler API. Keeping type checks in-process also
+  // avoids an unnecessary detached CLI process in restricted CI builders.
+  experimental: { useTypeScriptCli: false },
   images: { dangerouslyAllowSVG: false, formats: ["image/avif", "image/webp"] },
   async rewrites() {
     const apiOrigin = (process.env.API_PROXY_URL || "http://localhost:8080").replace(/\/$/, "");

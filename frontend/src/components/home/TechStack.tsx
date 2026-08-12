@@ -2,7 +2,7 @@
 
 import { motion, type Variants } from "framer-motion";
 
-import { siteConfig } from "@/lib/constants";
+import type { HomePageConfig } from "@/types";
 
 const iconVariants: Variants = {
   hidden: { opacity: 0, scale: 0.8 },
@@ -17,7 +17,7 @@ const iconVariants: Variants = {
   }),
 };
 
-export function TechStack() {
+export function TechStack({ config }: { config: HomePageConfig["sections"]["tech_stack"] }) {
   return (
     <section className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 lg:px-8 md:py-24">
       <motion.div
@@ -28,9 +28,9 @@ export function TechStack() {
         className="space-y-8"
       >
         <div className="text-center">
-          <h2 className="text-3xl font-bold">技术栈</h2>
+          <h2 className="text-3xl font-bold">{config.title}</h2>
           <p className="mt-2 text-muted-foreground">
-            我日常使用的技术和工具
+            {config.subtitle}
           </p>
         </div>
 
@@ -40,9 +40,9 @@ export function TechStack() {
           whileInView="visible"
           viewport={{ once: true }}
         >
-          {siteConfig.techStack.map((tech, index) => (
+          {config.items.map((tech, index) => (
             <motion.div
-              key={tech.name}
+              key={`${tech}-${index}`}
               custom={index}
               variants={iconVariants}
               whileHover={{ scale: 1.05 }}
@@ -50,10 +50,10 @@ export function TechStack() {
             >
               <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <span className="text-2xl font-bold">
-                  {tech.name.charAt(0)}
+                  {tech.charAt(0)}
                 </span>
               </div>
-              <span className="text-sm font-medium">{tech.name}</span>
+              <span className="text-sm font-medium">{tech}</span>
             </motion.div>
           ))}
         </motion.div>
