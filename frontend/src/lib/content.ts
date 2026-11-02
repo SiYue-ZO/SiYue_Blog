@@ -56,7 +56,7 @@ export async function getPosts(params: { page?: number; page_size?: number; tag?
   }
 }
 
-export async function getPostBySlug(slug: string) {
+export const getPostBySlug = cache(async (slug: string) => {
   try {
     return (await api.getPostBySlug(slug)).data;
   } catch (error) {
@@ -64,7 +64,7 @@ export async function getPostBySlug(slug: string) {
     if (!allowLocalFallback()) throw error;
     return localPost(slug);
   }
-}
+});
 
 export async function getTags(): Promise<Tag[]> {
   try {

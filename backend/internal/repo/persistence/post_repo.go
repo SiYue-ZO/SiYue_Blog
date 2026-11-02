@@ -141,13 +141,21 @@ func (r *postRepo) ListFeatured(ctx context.Context, limit int) ([]entity.Post, 
 }
 
 func (r *postRepo) Update(ctx context.Context, post *entity.Post) error {
-	return r.db.WithContext(ctx).Save(post).Error
+	return r.UpdateWithTags(ctx, post, nil, false)
 }
 
 func (r *postRepo) UpdateWithTags(ctx context.Context, post *entity.Post, tags []entity.Tag, replaceTags bool) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Save(post).Error; err != nil {
-			return err
+		result := tx.Model(&entity.Post{}).Where("id = ?", post.ID).Updates(map[string]interface{}{
+			"title": post.Title, "slug": post.Slug, "excerpt": post.Excerpt,
+			"content": post.Content, "cover_image": post.CoverImage,
+			"status": post.Status, "is_pinned": post.IsPinned, "published_at": post.PublishedAt,
+		})
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected == 0 {
+			return gorm.ErrRecordNotFound
 		}
 		if replaceTags {
 			if err := tx.Model(post).Association("Tags").Replace(tags); err != nil {
@@ -170,9 +178,16 @@ func (r *postRepo) Delete(ctx context.Context, id uint64) error {
 	return nil
 }
 
-func (r *postRepo) IncrementViewCount(ctx context.Context, id uint64) error {
-	return r.db.WithContext(ctx).
-		Model(&entity.Post{}).
-		Where("id = ?", id).
-		UpdateColumn("view_count", gorm.Expr("view_count + 1")).Error
+func (r *postRepo) IncrementViewCount(ctx context.Context, id uint64) (int, error) {
+	var viewCount int
+	result := r.db.WithContext(ctx).Raw(
+		"UPDATE posts SET view_count = view_count + 1 WHERE id = ? RETURNING view_count", id,
+	).Scan(&viewCount)
+	if result.Error != nil {
+		return 0, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return 0, gorm.ErrRecordNotFound
+	}
+	return viewCount, nil
 }

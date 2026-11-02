@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog"
 
 	"siyue-blog/internal/controller/http/shared"
 	"siyue-blog/internal/entity"
@@ -15,10 +16,11 @@ import (
 
 type PostHandler struct {
 	postUC usecase.PostUseCase
+	log    zerolog.Logger
 }
 
-func NewPostHandler(postUC usecase.PostUseCase) *PostHandler {
-	return &PostHandler{postUC: postUC}
+func NewPostHandler(postUC usecase.PostUseCase, log zerolog.Logger) *PostHandler {
+	return &PostHandler{postUC: postUC, log: log}
 }
 
 type publicAuthor struct {
@@ -96,12 +98,14 @@ func (h *PostHandler) GetBySlug(c *gin.Context) {
 		return
 	}
 
-	// Increment view count
-	go func(id uint64) {
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-		defer cancel()
-		_ = h.postUC.IncrementViewCount(ctx, id)
-	}(post.ID)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 2*time.Second)
+	defer cancel()
+	viewCount, err := h.postUC.IncrementViewCount(ctx, post.ID)
+	if err != nil {
+		h.log.Error().Err(err).Uint64("post_id", post.ID).Str("slug", slug).Msg("failed to increment post view count")
+	} else {
+		post.ViewCount = viewCount
+	}
 
 	shared.Success(c, toPublicPost(*post, true))
 }

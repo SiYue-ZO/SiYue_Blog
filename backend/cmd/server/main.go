@@ -81,7 +81,7 @@ func main() {
 
 	// Initialize handlers
 	healthHandler := v1.NewHealthHandler(db, cfg)
-	postHandler := v1.NewPostHandler(postUseCase)
+	postHandler := v1.NewPostHandler(postUseCase, logger)
 	tagHandler := v1.NewTagHandler(tagUseCase)
 	projectHandler := v1.NewProjectHandler(projectUseCase)
 	authHandler := v1.NewAuthHandler(authUseCase, cfg)

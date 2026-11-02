@@ -73,9 +73,9 @@ func (m *MockPostRepo) Delete(ctx context.Context, id uint64) error {
 	return args.Error(0)
 }
 
-func (m *MockPostRepo) IncrementViewCount(ctx context.Context, id uint64) error {
+func (m *MockPostRepo) IncrementViewCount(ctx context.Context, id uint64) (int, error) {
 	args := m.Called(ctx, id)
-	return args.Error(0)
+	return args.Int(0), args.Error(1)
 }
 
 // MockTagRepo is a mock implementation of TagRepo
