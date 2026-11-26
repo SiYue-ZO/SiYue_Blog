@@ -178,16 +178,30 @@ func (r *postRepo) Delete(ctx context.Context, id uint64) error {
 	return nil
 }
 
-func (r *postRepo) IncrementViewCount(ctx context.Context, id uint64) (int, error) {
+func (r *postRepo) RecordView(ctx context.Context, id uint64, eventID string) (int, error) {
 	var viewCount int
-	result := r.db.WithContext(ctx).Raw(
-		"UPDATE posts SET view_count = view_count + 1 WHERE id = ? RETURNING view_count", id,
-	).Scan(&viewCount)
-	if result.Error != nil {
-		return 0, result.Error
-	}
-	if result.RowsAffected == 0 {
-		return 0, gorm.ErrRecordNotFound
-	}
-	return viewCount, nil
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Lock first so duplicate events and different readers see a consistent
+		// count, and an unpublish/delete cannot race the increment.
+		result := tx.Raw(`SELECT view_count FROM posts
+			WHERE id = ? AND status = 'published' AND published_at <= NOW()
+			FOR UPDATE`, id).Scan(&viewCount)
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected == 0 {
+			return gorm.ErrRecordNotFound
+		}
+		result = tx.Exec(`INSERT INTO post_view_events (post_id, event_id)
+			VALUES (?, ?) ON CONFLICT DO NOTHING`, id, eventID)
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected == 0 {
+			return nil
+		}
+		return tx.Raw("UPDATE posts SET view_count = view_count + 1 WHERE id = ? RETURNING view_count", id).
+			Scan(&viewCount).Error
+	})
+	return viewCount, err
 }

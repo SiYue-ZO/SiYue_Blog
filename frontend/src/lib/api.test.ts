@@ -2,6 +2,29 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { api } from "./api";
 
+describe("post view reporting", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("posts an event separately from fetching article content", async () => {
+    vi.stubGlobal("window", {});
+    const fetchMock = vi.fn<typeof fetch>(async () => jsonResponse(200, {
+      code: 0, message: "ok", data: { view_count: 7 },
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await api.getPostBySlug("hello 世界");
+    const result = await api.recordPostView("hello 世界", "12345678-1234-4234-8234-123456789012");
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/v1/posts/hello%20%E4%B8%96%E7%95%8C");
+    expect(fetchMock.mock.calls[1]?.[0]).toBe("/api/v1/posts/hello%20%E4%B8%96%E7%95%8C/views");
+    expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({
+      method: "POST", cache: "no-store",
+      body: JSON.stringify({ event_id: "12345678-1234-4234-8234-123456789012" }),
+    });
+    expect(result.data.view_count).toBe(7);
+  });
+});
+
 function jsonResponse(status: number, data: unknown) {
   return new Response(JSON.stringify(data), {
     status,

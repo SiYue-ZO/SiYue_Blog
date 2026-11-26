@@ -235,6 +235,6 @@ func (uc *useCase) Delete(ctx context.Context, id uint64) error {
 	return nil
 }
 
-func (uc *useCase) IncrementViewCount(ctx context.Context, id uint64) (int, error) {
-	return uc.postRepo.IncrementViewCount(ctx, id)
+func (uc *useCase) RecordView(ctx context.Context, id uint64, eventID string) (int, error) {
+	return uc.postRepo.RecordView(ctx, id, eventID)
 }

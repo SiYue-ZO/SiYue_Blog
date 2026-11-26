@@ -113,6 +113,10 @@ export const api = {
     publicRequest<PaginatedResponse<PublicPost>>(`/posts${queryString(params)}`, { cache: "no-store" }),
   getPostBySlug: (slug: string) =>
     publicRequest<PublicPost>(`/posts/${encodeURIComponent(slug)}`, { cache: "no-store" }),
+  recordPostView: (slug: string, eventId: string) =>
+    publicRequest<{ view_count: number }>(`/posts/${encodeURIComponent(slug)}/views`, {
+      method: "POST", body: JSON.stringify({ event_id: eventId }), cache: "no-store",
+    }),
   getFeaturedPosts: (limit = 3) => publicRequest<PublicPost[]>(`/posts/featured${queryString({ limit })}`, { cache: "no-store" }),
   getTags: () => publicRequest<Tag[]>("/tags", { cache: "no-store" }),
   getSettings: () => publicRequest<SiteSettings>("/settings", { cache: "no-store" }),

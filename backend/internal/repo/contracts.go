@@ -35,7 +35,7 @@ type PostRepo interface {
 	Update(ctx context.Context, post *entity.Post) error
 	UpdateWithTags(ctx context.Context, post *entity.Post, tags []entity.Tag, replaceTags bool) error
 	Delete(ctx context.Context, id uint64) error
-	IncrementViewCount(ctx context.Context, id uint64) (int, error)
+	RecordView(ctx context.Context, id uint64, eventID string) (int, error)
 }
 
 type ContactRepo interface {

@@ -98,16 +98,34 @@ func (h *PostHandler) GetBySlug(c *gin.Context) {
 		return
 	}
 
+	shared.Success(c, toPublicPost(*post, true))
+}
+
+// RecordView is separate from GET so metadata, prefetches and server rendering
+// cannot count as reading an article. Repeated event IDs are deduplicated in SQL.
+func (h *PostHandler) RecordView(c *gin.Context) {
+	var input struct {
+		EventID string `json:"event_id" binding:"required,uuid4"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		shared.Error(c, http.StatusBadRequest, shared.ErrCodeValidation, "A UUID v4 event_id is required")
+		return
+	}
+	post, err := h.postUC.GetBySlug(c.Request.Context(), c.Param("slug"))
+	if err != nil {
+		shared.Error(c, http.StatusNotFound, shared.ErrCodePostNotFound, "Post not found")
+		return
+	}
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 2*time.Second)
 	defer cancel()
-	viewCount, err := h.postUC.IncrementViewCount(ctx, post.ID)
+	viewCount, err := h.postUC.RecordView(ctx, post.ID, input.EventID)
 	if err != nil {
-		h.log.Error().Err(err).Uint64("post_id", post.ID).Str("slug", slug).Msg("failed to increment post view count")
-	} else {
-		post.ViewCount = viewCount
+		h.log.Error().Err(err).Uint64("post_id", post.ID).Msg("failed to record post view")
+		shared.Error(c, http.StatusInternalServerError, shared.ErrCodeDatabase, "Failed to record post view")
+		return
 	}
-
-	shared.Success(c, toPublicPost(*post, true))
+	c.Header("Cache-Control", "no-store")
+	shared.Success(c, gin.H{"view_count": viewCount})
 }
 
 func (h *PostHandler) Featured(c *gin.Context) {

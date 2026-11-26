@@ -42,6 +42,20 @@ curl --fail https://你的域名/api/v1/health
 
 生产 Compose 支持不可变镜像：设置 `BACKEND_IMAGE`、`FRONTEND_IMAGE`、`RELEASE_TAG` 后执行 `pull` 与 `up -d`。回滚时将 `RELEASE_TAG` 改为上一个 Git commit SHA 并重新启动。数据库迁移应保持向后兼容；回滚镜像前先确认旧版本能够读取新 schema。
 
+### 阅读次数修复版本升级
+
+本次升级需要同时更新后端和前端；仅重启旧镜像不会应用源码变更。1Panel 的终端中进入原项目目录，保留原 `.env`、Compose 项目名和数据库卷，更新源码后执行：
+
+```bash
+docker compose -f docker-compose.prod.yml build backend frontend &&
+docker compose -f docker-compose.prod.yml up -d --remove-orphans
+docker compose -f docker-compose.prod.yml ps
+```
+
+启动时自动执行迁移 `017_create_post_view_events.up.sql`，新增阅读事件去重表，已有文章和累计阅读数保持原值。前端健康检查使用 `127.0.0.1:3000`，避免 `localhost` 解析到 IPv6 而应用仅监听 IPv4 时出现连接拒绝。
+
+验证时打开文章并连续刷新，每次应增加 1 次。浏览器网络面板中每次打开应只有一个 `POST /api/v1/posts/:slug/views` 请求；直接 GET 文章接口、元数据请求和预取不再增加阅读次数。查看前端日志应显示 Next.js 16.4.6 或之后的版本，避免误用旧镜像。
+
 ## 4. GitHub Actions 自动发布
 
 `CI` 在前后端检查通过后触发 `Publish and Deploy`，将带 commit SHA 和 `latest` 标签的镜像推送到 GHCR。

@@ -3,7 +3,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Calendar, ArrowLeft, Tag, Eye } from "lucide-react";
+import { Calendar, ArrowLeft, Tag } from "lucide-react";
 
 import { getPostBySlug, getPosts } from "@/lib/content";
 import { formatDate } from "@/lib/utils";
@@ -11,6 +11,7 @@ import { siteConfig } from "@/lib/constants";
 import { MarkdownContent } from "@/components/blog/MarkdownContent";
 import { ReadingProgress } from "@/components/blog/ReadingProgress";
 import { TableOfContents } from "@/components/blog/TableOfContents";
+import { PostViewCounter } from "@/components/blog/PostViewCounter";
 
 export const dynamic = "force-dynamic";
 type Props = { params: Promise<{ slug: string }> };
@@ -61,7 +62,7 @@ export default async function BlogPostPage({ params }: Props) {
               <p className="text-lg leading-8 text-muted-foreground">{post.excerpt}</p>
               <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                 <span className="inline-flex items-center gap-1.5"><Calendar size={14} /><time dateTime={published}>{formatDate(published)}</time></span>
-                <span className="inline-flex items-center gap-1.5"><Eye size={14} />{post.view_count} 次阅读</span>
+                <PostViewCounter key={post.slug} slug={post.slug} initialCount={post.view_count} enabled={post.id > 0} />
               </div>
               <div className="flex flex-wrap gap-2">{post.tags?.map((tag) => <Link key={tag.id} href={`/blog?tag=${encodeURIComponent(tag.slug)}`} className="tag"><Tag size={12} />{tag.name}</Link>)}</div>
             </header>

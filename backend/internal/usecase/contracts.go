@@ -26,7 +26,7 @@ type PostUseCase interface {
 	ListFeatured(ctx context.Context, limit int) ([]entity.Post, error)
 	Update(ctx context.Context, id uint64, input UpdatePostInput) (*entity.Post, error)
 	Delete(ctx context.Context, id uint64) error
-	IncrementViewCount(ctx context.Context, id uint64) (int, error)
+	RecordView(ctx context.Context, id uint64, eventID string) (int, error)
 }
 
 type ContactUseCase interface {

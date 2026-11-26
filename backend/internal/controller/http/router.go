@@ -59,6 +59,7 @@ func NewRouter(
 		api.GET("/posts", postHandler.List)
 		api.GET("/posts/featured", postHandler.Featured)
 		api.GET("/posts/:slug", postHandler.GetBySlug)
+		api.POST("/posts/:slug/views", middleware.RequireJSON(), postHandler.RecordView)
 
 		// Tags
 		api.GET("/tags", tagHandler.List)

@@ -73,8 +73,8 @@ func (m *MockPostRepo) Delete(ctx context.Context, id uint64) error {
 	return args.Error(0)
 }
 
-func (m *MockPostRepo) IncrementViewCount(ctx context.Context, id uint64) (int, error) {
-	args := m.Called(ctx, id)
+func (m *MockPostRepo) RecordView(ctx context.Context, id uint64, eventID string) (int, error) {
+	args := m.Called(ctx, id, eventID)
 	return args.Int(0), args.Error(1)
 }
 

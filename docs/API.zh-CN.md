@@ -15,13 +15,17 @@
 | GET | `/auth/me` | 当前登录用户 |
 | GET | `/posts` | 已发布文章分页；支持 `page`、`page_size`、`search`、`tag` |
 | GET | `/posts/featured` | 精选已发布文章 |
-| GET | `/posts/:slug` | 已发布文章详情 |
+| GET | `/posts/:slug` | 已发布文章详情；纯读取，不增加阅读次数 |
+| POST | `/posts/:slug/views` | 上报阅读事件，JSON `{ "event_id": "UUID v4" }`；返回 `view_count` |
 | GET | `/tags` | 标签及文章数量 |
 | GET | `/projects` | 项目列表 |
 | GET | `/projects/featured` | 精选项目 |
 | POST | `/contact` | 提交联系消息 |
 
 仅当 `auth.allow_registration=true` 时提供 `POST /auth/register`。
+
+阅读次数按浏览器实际打开文章页面计数，刷新页面计一次。元数据请求、预取和直接 GET 文章不计数。
+同一篇文章的相同 `event_id` 只计一次，去重记录与计数在数据库事务中同时提交，跨服务重启及多实例仍然有效。
 
 ## 管理 API `/api/admin`
 

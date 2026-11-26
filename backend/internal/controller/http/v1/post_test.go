@@ -2,7 +2,6 @@ package v1
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -20,55 +19,96 @@ import (
 type postUseCaseStub struct {
 	usecase.PostUseCase
 	post          *entity.Post
-	incrementErr  error
-	incrementedID uint64
+	getErr        error
+	recordErr     error
+	recordedID    uint64
+	recordedEvent string
+	recordCalls   int
 }
 
 func (stub *postUseCaseStub) GetBySlug(context.Context, string) (*entity.Post, error) {
-	return stub.post, nil
+	return stub.post, stub.getErr
 }
 
-func (stub *postUseCaseStub) IncrementViewCount(_ context.Context, id uint64) (int, error) {
-	stub.incrementedID = id
-	if stub.incrementErr != nil {
-		return 0, stub.incrementErr
-	}
-	return stub.post.ViewCount + 1, nil
+func (stub *postUseCaseStub) RecordView(_ context.Context, id uint64, eventID string) (int, error) {
+	stub.recordedID, stub.recordedEvent = id, eventID
+	stub.recordCalls++
+	return 42, stub.recordErr
 }
 
-func TestGetBySlugReturnsIncrementedViewCount(t *testing.T) {
+func TestGetBySlugNeverCountsViews(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	stub := &postUseCaseStub{post: &entity.Post{ID: 12, Slug: "test-post", ViewCount: 6}}
 	router := gin.New()
 	router.GET("/posts/:slug", NewPostHandler(stub, zerolog.Nop()).GetBySlug)
-	recorder := httptest.NewRecorder()
-
-	router.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/posts/test-post", nil))
-
-	require.Equal(t, http.StatusOK, recorder.Code)
-	require.Equal(t, uint64(12), stub.incrementedID)
-	var response struct {
-		Data publicPost `json:"data"`
+	// Metadata, page rendering and prefetches must all be pure reads.
+	for range 3 {
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/posts/test-post", nil))
+		require.Equal(t, http.StatusOK, recorder.Code)
+		require.Contains(t, recorder.Body.String(), `"view_count":6`)
 	}
-	require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &response))
-	require.Equal(t, 7, response.Data.ViewCount)
+	require.Zero(t, stub.recordCalls)
 }
 
-func TestGetBySlugKeepsReturningPostWhenViewCountUpdateFails(t *testing.T) {
+func TestRecordViewReturnsDatabaseCount(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	var logs strings.Builder
-	stub := &postUseCaseStub{
-		post:         &entity.Post{ID: 12, Slug: "test-post", ViewCount: 6},
-		incrementErr: errors.New("database unavailable"),
-	}
+	stub := &postUseCaseStub{post: &entity.Post{ID: 12, Slug: "test-post", ViewCount: 6}}
 	router := gin.New()
-	router.GET("/posts/:slug", NewPostHandler(stub, zerolog.New(&logs)).GetBySlug)
+	router.POST("/posts/:slug/views", NewPostHandler(stub, zerolog.Nop()).RecordView)
 	recorder := httptest.NewRecorder()
-
-	router.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/posts/test-post", nil))
-
+	request := httptest.NewRequest(http.MethodPost, "/posts/test-post/views",
+		strings.NewReader(`{"event_id":"12345678-1234-4234-8234-123456789012"}`))
+	request.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(recorder, request)
 	require.Equal(t, http.StatusOK, recorder.Code)
-	require.Contains(t, recorder.Body.String(), `"view_count":6`)
-	require.Contains(t, logs.String(), "failed to increment post view count")
-	require.Contains(t, logs.String(), "database unavailable")
+	require.Equal(t, "no-store", recorder.Header().Get("Cache-Control"))
+	require.Contains(t, recorder.Body.String(), `"view_count":42`)
+	require.Equal(t, uint64(12), stub.recordedID)
+	require.Equal(t, "12345678-1234-4234-8234-123456789012", stub.recordedEvent)
+	require.Equal(t, 1, stub.recordCalls)
+}
+
+func TestRecordViewRejectsInvalidEvent(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	stub := &postUseCaseStub{}
+	router := gin.New()
+	router.POST("/posts/:slug/views", NewPostHandler(stub, zerolog.Nop()).RecordView)
+	for _, body := range []string{`{}`, `{"event_id":"not-a-uuid"}`, `{"event_id":123}`, `not-json`} {
+		recorder := httptest.NewRecorder()
+		request := httptest.NewRequest(http.MethodPost, "/posts/test-post/views", strings.NewReader(body))
+		request.Header.Set("Content-Type", "application/json")
+		router.ServeHTTP(recorder, request)
+		require.Equal(t, http.StatusBadRequest, recorder.Code)
+	}
+	require.Zero(t, stub.recordCalls)
+}
+
+func TestRecordViewErrors(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	for _, test := range []struct {
+		name              string
+		getErr, recordErr error
+		status, calls     int
+	}{
+		{"missing or unpublished", errors.New("not found"), nil, http.StatusNotFound, 0},
+		{"database unavailable", nil, errors.New("database unavailable"), http.StatusInternalServerError, 1},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			var logs strings.Builder
+			stub := &postUseCaseStub{post: &entity.Post{ID: 12}, getErr: test.getErr, recordErr: test.recordErr}
+			router := gin.New()
+			router.POST("/posts/:slug/views", NewPostHandler(stub, zerolog.New(&logs)).RecordView)
+			recorder := httptest.NewRecorder()
+			request := httptest.NewRequest(http.MethodPost, "/posts/test-post/views",
+				strings.NewReader(`{"event_id":"12345678-1234-4234-8234-123456789012"}`))
+			request.Header.Set("Content-Type", "application/json")
+			router.ServeHTTP(recorder, request)
+			require.Equal(t, test.status, recorder.Code)
+			require.Equal(t, test.calls, stub.recordCalls)
+			if test.recordErr != nil {
+				require.Contains(t, logs.String(), "failed to record post view")
+			}
+		})
+	}
 }
