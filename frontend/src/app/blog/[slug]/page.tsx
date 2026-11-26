@@ -62,7 +62,7 @@ export default async function BlogPostPage({ params }: Props) {
               <p className="text-lg leading-8 text-muted-foreground">{post.excerpt}</p>
               <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                 <span className="inline-flex items-center gap-1.5"><Calendar size={14} /><time dateTime={published}>{formatDate(published)}</time></span>
-                <PostViewCounter key={post.slug} slug={post.slug} initialCount={post.view_count} enabled={post.id > 0} />
+                <PostViewCounter key={post.id} postId={post.id} slug={post.slug} initialCount={post.view_count} />
               </div>
               <div className="flex flex-wrap gap-2">{post.tags?.map((tag) => <Link key={tag.id} href={`/blog?tag=${encodeURIComponent(tag.slug)}`} className="tag"><Tag size={12} />{tag.name}</Link>)}</div>
             </header>
